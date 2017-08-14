@@ -18,7 +18,7 @@ struct InternalState {
 
 // define the Operator trait: every Operator
 // can modify the internal state
-trait Operator: Sized {
+trait Operator {
 	// rust compiler issue 35203.
   fn apply_to(self, /*mut*/ s: InternalState) -> InternalState;
 	fn changes_instruction_counter(&self) -> bool;
