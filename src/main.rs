@@ -1,14 +1,9 @@
 // values
+
 #[derive(Debug, Clone, Copy)]
-struct Value {
-	value: u32,
-	is_char: bool
-}
-fn create_number(number: u32) -> Value {
-	Value{value: number, is_char: false}
-}
-fn create_character(character: char) -> Value {
-	Value{value: character.to_digit(36).unwrap() - 10, is_char: true}
+enum Value {
+	Number{value: u32},
+	Character{value: char}
 }
 
 // structure to be modified by `Operator`s
@@ -92,7 +87,15 @@ impl Operator for AddOp {
 			Some(ref v) => {
 				match s.register {
 					Some(old_register) => {
-						s.register = Some(create_number(old_register.value + v.value))
+						let value_to_add = match v {
+							&Value::Number{value: _v} => _v,
+							&Value::Character{value: _} => panic!("argh")
+						};
+						let old_register_value = match old_register {
+							Value::Number{value: _v} => _v,
+							Value::Character{value: _} => panic!("argh2")
+						};
+						s.register = Some(Value::Number{value: old_register_value + value_to_add});
 					}
 					_ => {
 						panic!("No value in register Employee, cannot add.");
@@ -164,7 +167,7 @@ fn main() {
     let mut internal_state = InternalState{
 			register: None,
 			input_tape: vec!(
-				create_number(8)
+				Value::Number{value: 8}
 			),
 			output_tape: vec!(),
 			instruction_counter: 0,
