@@ -1,7 +1,7 @@
 use Value;
 use Operation;
 use operators;
-use operators::operators::Operator;
+use operators::Operator;
 
 #[derive(Debug)]
 pub struct InternalState {

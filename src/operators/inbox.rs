@@ -1,4 +1,4 @@
-use super::operators::Operator;
+use operators::Operator;
 use state::InternalState;
 
 pub struct InboxOp {}
