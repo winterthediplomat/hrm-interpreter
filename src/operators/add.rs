@@ -1,6 +1,6 @@
-	use operators::Operator;
-	use state::InternalState;
-	use Value;
+use super::operators::Operator;
+use Value;
+use state;
 
 // structure to be modified by `Operator`s
 // implement an operator
@@ -12,7 +12,7 @@ impl Operator for AddOp {
 		false
 	}
 
-  fn apply_to(self, mut s: InternalState) -> InternalState {
+  fn apply_to(&self, mut s: state::InternalState) -> state::InternalState {
 		let x = s.memory[self.cell].clone();
 		match x {
 			Some(ref v) => {

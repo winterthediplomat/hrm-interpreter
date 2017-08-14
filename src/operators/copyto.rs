@@ -1,5 +1,5 @@
-	use operators::Operator;
-	use state::InternalState;
+use super::operators::Operator;
+use state::InternalState;
 
 pub struct CopyToOp {
 	pub cell: usize
@@ -7,7 +7,7 @@ pub struct CopyToOp {
 impl Operator for CopyToOp {
 	fn changes_instruction_counter(&self) -> bool { false }
 
-	fn apply_to(self, mut s: InternalState) -> InternalState {
+	fn apply_to(&self, mut s: InternalState) -> InternalState {
 		if let Some(value) = s.register {
 			s.memory[self.cell] = Some(value);
 		}
