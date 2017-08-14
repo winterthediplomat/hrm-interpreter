@@ -1,5 +1,3 @@
-
-
 	use operators::Operator;
 	use state::InternalState;
 	use Value;
