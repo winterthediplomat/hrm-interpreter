@@ -9,7 +9,7 @@ pub struct InternalState {
 	pub input_tape: Vec<Value>,
 	pub output_tape: Vec<Value>,
 	pub memory: Vec<Option<Value>>,
-	pub instruction_counter: u32
+	pub instruction_counter: usize
 }
 
 

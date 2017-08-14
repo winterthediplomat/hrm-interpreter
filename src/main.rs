@@ -27,12 +27,17 @@ fn main() {
 			Operation::Outbox{}
 		);
 
-    // create the operator and call Operator::applyTo
-		for _operation in code {
-			println!("applying operation {:?}", _operation);
-			internal_state = internal_state.apply(_operation);
+		loop {
+			if internal_state.instruction_counter < code.len() {
+				let _operation = code[internal_state.instruction_counter];
+				println!("applying operation {:?}", _operation);
+				internal_state = internal_state.apply(_operation);
+			}
+			else {
+				break;
+			}
 		}
 
-    // print internal state
+		// print internal state
 		println!("{:?}", internal_state);
 }

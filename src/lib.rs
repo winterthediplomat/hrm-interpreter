@@ -4,7 +4,7 @@ pub enum Value {
 	Character{value: char}
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub enum Operation {
 	Inbox,
 	Outbox,
