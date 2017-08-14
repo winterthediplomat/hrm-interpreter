@@ -31,41 +31,29 @@ enum Operation {
 	CopyToOp{cell: usize}
 }
 
+macro_rules! apply_operation {
+	($self: ident, $operator:expr) => ({
+		$self = $operator.apply_to($self);
+		if !$operator.changes_instruction_counter() {
+			$self.instruction_counter += 1;
+		}
+	})
+}
+
 impl InternalState {
 	fn apply(mut self, op: Operation) -> InternalState {
 		match op {
 			Operation::AddOp{cell: _cell} => {
-				let op = AddOp{cell: _cell};
-				// why is it moved?
-				let x = op.changes_instruction_counter();
-				self = op.apply_to(self);
-				if ! x {
-					self.instruction_counter += 1;
-				}
+				apply_operation!(self, AddOp{cell: _cell});
 			},
 			Operation::InboxOp => {
-				let op = InboxOp{};
-				let x = op.changes_instruction_counter();
-				self = op.apply_to(self);
-				if ! x {
-					self.instruction_counter += 1;
-				}
+				apply_operation!(self, InboxOp{});
 			},
 			Operation::OutboxOp => {
-				let op = OutboxOp{};
-				let x = op.changes_instruction_counter();
-				self = op.apply_to(self);
-				if ! x {
-					self.instruction_counter += 1;
-				}
+				apply_operation!(self, OutboxOp{});
 			},
 			Operation::CopyToOp{cell: _cell} => {
-				let op = CopyToOp{cell: _cell};
-				let x = op.changes_instruction_counter();
-				self = op.apply_to(self);
-				if ! x {
-					self.instruction_counter += 1;
-				}
+				apply_operation!(self, CopyToOp{cell: _cell});
 			}
 		};
 		self
@@ -192,7 +180,5 @@ fn main() {
 		}
 
     // print internal state
-//    println!("{:?}", internal_state.register);
-//		println!("{:?}", internal_state.memory);
 		println!("{:?}", internal_state);
 }
