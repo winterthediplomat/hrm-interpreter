@@ -1,4 +1,3 @@
-// values
 extern crate hrm_interpreter;
 
 use hrm_interpreter::state;
