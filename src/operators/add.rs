@@ -1,22 +1,40 @@
 use operators::Operator;
 use Value;
 use state;
-
+// --
 use std::char;
 
-// structure to be modified by `Operator`s
-// implement an operator
 pub struct AddOp {
 	pub cell: usize
 }
+
+impl AddOp {
+	fn add_number_and_char(num: u32, c: char) -> Result<char, u32> {
+		const ALPHABET_RADIX: u32 = 36;
+		const SMALL_ASCII_A: u32 = 97;
+		const HEX_A_IN_DEC: u32 = 10;
+
+		let c_as_number = c.to_digit(ALPHABET_RADIX).unwrap();
+		let new_number = c_as_number + num;
+		let fixed_for_char: u32 = SMALL_ASCII_A + (new_number - HEX_A_IN_DEC);
+
+		if new_number >= 36 {
+			Err(new_number)
+		}
+		else {
+			Ok(char::from_u32(fixed_for_char).unwrap())
+		}
+	}
+}
+
 impl Operator for AddOp {
   fn changes_instruction_counter(&self) -> bool {
 		false
 	}
 
   fn apply_to(&self, mut s: state::InternalState) -> state::InternalState {
-		let x = s.memory[self.cell].clone();
-		match x {
+		let value_from_memory = s.memory[self.cell].clone();
+		match value_from_memory {
 			Some(ref v) => {
 				match s.register {
 					Some(old_register) => {
@@ -24,21 +42,23 @@ impl Operator for AddOp {
 							(&Value::Number{value: _v}, Value::Number{value: _old}) => {
 								Value::Number{value: _v + _old}
 							},
-								(&Value::Number{value: _v}, Value::Character{value: _old})
-							| (&Value::Character{value: _old}, Value::Number{value: _v}) => {
-								const ALPHABET_RADIX: u32 = 36;
-								const SMALL_ASCII_A: u32 = 97;
-								const HEX_A_IN_DEC: u32 = 10;
-								let number = _old.to_digit(ALPHABET_RADIX).unwrap();
-								let new_number = number + _v;
-								let fixed_for_char : u32 = SMALL_ASCII_A + (new_number - HEX_A_IN_DEC);
-								if new_number >= 36 {
+							(&Value::Number{value: _v}, Value::Character{value: _old}) => {
+								if let Ok(new_char) = AddOp::add_number_and_char(_v, _old) {
+									Value::Character{value: new_char}
+								}
+								else {
 									panic!("value overflowed! {} + {} is not representable as a letter!", _old, _v);
 								}
-								let new_char = char::from_u32(fixed_for_char).unwrap();
-								Value::Character{value: new_char}
 							},
-							_ => panic!("cannot sum two characters or different Value types!")
+							(&Value::Character{value: _v}, Value::Number{value: _old}) => {
+								if let Ok(new_char) = AddOp::add_number_and_char(_old, _v) {
+									Value::Character{value: new_char}
+								}
+								else {
+									panic!("value overflowed! {} + {} is not representable as a letter!", _old, _v);
+								}
+							},
+							_ => panic!("cannot sum two characters!")
 						};
 						s.register = Some(new_register_value);
 					}
