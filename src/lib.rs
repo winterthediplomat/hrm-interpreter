@@ -9,7 +9,8 @@ pub enum Operation {
 	Inbox,
 	Outbox,
 	Add{cell: usize},
-	CopyTo{cell: usize}
+	CopyFrom{cell: usize},
+	CopyTo{cell: usize},
 }
 
 pub mod operators;

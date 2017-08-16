@@ -35,6 +35,9 @@ impl InternalState {
 			Operation::Outbox => {
 				apply_operation!(self, operators::outbox::OutboxOp{});
 			},
+			Operation::CopyFrom{cell: _cell} => {
+				apply_operation!(self, operators::copyfrom::CopyFromOp{cell: _cell});
+			}
 			Operation::CopyTo{cell: _cell} => {
 				apply_operation!(self, operators::copyto::CopyToOp{cell: _cell});
 			}
