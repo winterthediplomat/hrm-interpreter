@@ -4,6 +4,13 @@ use state;
 // --
 use std::char;
 
+enum Error {
+	NoValue{cell: usize},
+	NoEmployeeValue,
+	SumOfChars,
+	SumOverflow{character: char, number: u32}
+}
+
 pub struct AddOp {
 	pub cell: usize
 }
@@ -25,6 +32,17 @@ impl AddOp {
 			Ok(char::from_u32(fixed_for_char).unwrap())
 		}
 	}
+
+	fn explain_error(e: Error) -> String {
+		match e {
+			Error::NoValue{cell: _cell} => format!("There is no value at cell {}", _cell),
+			Error::NoEmployeeValue => String::from("the Employee register holds no value. Cannot add."),
+			Error::SumOfChars => String::from("cannot sum two characters!"),
+			Error::SumOverflow{character: _char, number: _num} =>
+				format!("value overflowed! {} + {} is not representable as a letter!",
+								_char, _num)
+		}
+	}
 }
 
 impl Operator for AddOp {
@@ -32,47 +50,54 @@ impl Operator for AddOp {
 		false
 	}
 
-  fn apply_to(&self, mut s: state::InternalState) -> state::InternalState {
+  fn apply_to(&self,  s: &mut state::InternalState) -> Result<(), String> {
 		let value_from_memory = s.memory[self.cell].clone();
-		match value_from_memory {
+		let res = match value_from_memory {
 			Some(ref v) => {
 				match s.register {
 					Some(old_register) => {
-						let new_register_value =  match (v, old_register) {
+						let new_register_value: Result<Value, String> =  match (v, old_register) {
 							(&Value::Number{value: _v}, Value::Number{value: _old}) => {
-								Value::Number{value: _v + _old}
+								Ok(Value::Number{value: _v + _old})
 							},
 							(&Value::Number{value: _v}, Value::Character{value: _old}) => {
 								if let Ok(new_char) = AddOp::add_number_and_char(_v, _old) {
-									Value::Character{value: new_char}
+									Ok(Value::Character{value: new_char})
 								}
 								else {
-									panic!("value overflowed! {} + {} is not representable as a letter!", _old, _v);
+									Err(AddOp::explain_error(Error::SumOverflow{character: _old, number: _v}))
 								}
 							},
 							(&Value::Character{value: _v}, Value::Number{value: _old}) => {
 								if let Ok(new_char) = AddOp::add_number_and_char(_old, _v) {
-									Value::Character{value: new_char}
+									Ok(Value::Character{value: new_char})
 								}
 								else {
-									panic!("value overflowed! {} + {} is not representable as a letter!", _old, _v);
+									Err(AddOp::explain_error(Error::SumOverflow{character: _v, number: _old}))
 								}
 							},
-							_ => panic!("cannot sum two characters!")
+							_ => Err(AddOp::explain_error(Error::SumOfChars))
 						};
-						s.register = Some(new_register_value);
+						
+						match new_register_value {
+							Ok(value) => {
+								s.register = Some(value);
+								Ok(())
+							},
+							Err(reason) => Err(reason)
+						}
 					}
 					_ => {
-						panic!("No value in register Employee, cannot add.");
+						Err(AddOp::explain_error(Error::NoEmployeeValue))
 					}
 				}
 			}
 			_ => {
-				panic!("No value at cell {}", self.cell);
+				Err(AddOp::explain_error(Error::NoValue{cell: self.cell}))
 			}
-		}
+		};
 
-		return s;
+		res
   }
 }
 
@@ -81,6 +106,8 @@ mod test {
 	use state;
 	use Value;
 	use Operation;
+	use operators::Operator;
+	use operators::add::AddOp;
 
 	#[test]
 	fn add_two_numbers(){
@@ -91,8 +118,9 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 4})),
 			instruction_counter: 0
 		};
-		
-		state = state.apply(Operation::Add{cell: 0});
+		let operation = AddOp{cell: 0};
+
+		let _ = operation.apply_to(&mut state).unwrap();
 
 		assert!(match state.register {
 			Some(Value::Number{value: 9}) => true,
@@ -101,45 +129,51 @@ mod test {
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_number_to_empty_cell(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(None),
 			instruction_counter: 0
 		};
-		
-		state.apply(Operation::Add{cell: 0});
+		let operation = AddOp{cell: 0};
+
+		let result = operation.apply_to(& mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_number_to_empty_register(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: None,
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		
-		state.apply(Operation::Add{cell: 0});
+		let operation = AddOp{cell: 0};
+
+		let result = operation.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_char_to_char(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'a'}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Character{value: 'a'})),
 			instruction_counter: 0
 		};
+		let operator = AddOp{cell: 0};
 
-		state.apply(Operation::Add{cell: 0});
+		let result = operator.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
@@ -152,7 +186,7 @@ mod test {
 			instruction_counter: 0
 		};
 
-		state = state.apply(Operation::Add{cell: 0});
+		let _ = state.apply(Operation::Add{cell: 0});
 
 		assert!(match state.register {
 			Some(Value::Character{value: 'f'}) => true,
@@ -161,17 +195,19 @@ mod test {
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_char_to_number_overflow(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'z'}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
+		let operation = AddOp{cell: 0};
 
-		state.apply(Operation::Add{cell: 0});
+		let result = operation.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
@@ -184,7 +220,7 @@ mod test {
 			instruction_counter: 0
 		};
 
-		state = state.apply(Operation::Add{cell: 0});
+		let _ = state.apply(Operation::Add{cell: 0}).unwrap();
 
 		assert!(match state.register {
 			Some(Value::Character{value: 'f'}) => true,
@@ -193,16 +229,18 @@ mod test {
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_number_to_char_overflow(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Character{value: 'z'})),
 			instruction_counter: 0
 		};
+		let operation = AddOp{cell: 0};
 
-		state.apply(Operation::Add{cell: 0});
+		let result = operation.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 }
