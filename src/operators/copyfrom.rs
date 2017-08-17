@@ -22,25 +22,25 @@ impl Operator for CopyFromOp {
 mod test {
 	use state::InternalState;
   use Value;
-	use Operation;
+	use operators::Operator;
+	use operators::copyfrom::CopyFromOp;
 
 	#[test]
 	fn copyfrom_non_empty_cell(){
-		let mut state = InternalState{
+		let state = InternalState{
 			register: None,
 			memory: vec!(Some(Value::Number{value: 5})),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			instruction_counter: 0
 		};
+		let operation = CopyFromOp{cell: 0};
 
-		state = state.apply(Operation::CopyFrom{cell: 0});
-
-		assert!(state.register.is_some())
+		let result = operation.apply_to(state);
+		assert!(result.is_ok())
 	}
 
 	#[test]
-	#[should_panic]
 	fn copyfrom_empty_cell() {
 		let state = InternalState{
 			register: None,
@@ -49,8 +49,11 @@ mod test {
 			output_tape: vec!(),
 			instruction_counter: 0
 		};
+		let operation = CopyFromOp{cell: 0};
 
-		state.apply(Operation::CopyFrom{cell: 0});
+		let result = operation.apply_to(state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
@@ -63,7 +66,9 @@ mod test {
 			output_tape: vec!(),
 			instruction_counter: 0
 		};
+		let operation = CopyFromOp{cell: 9};
 
-		state.apply(Operation::CopyFrom{cell: 5});
+		// #[should_panic]
+		let _ = operation.apply_to(state);
 	}
 }
