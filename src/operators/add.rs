@@ -4,6 +4,13 @@ use state;
 // --
 use std::char;
 
+enum Error {
+	NoValue{cell: usize},
+	NoEmployeeValue,
+	SumOfChars,
+	SumOverflow{character: char, number: u32}
+}
+
 pub struct AddOp {
 	pub cell: usize
 }
@@ -25,6 +32,17 @@ impl AddOp {
 			Ok(char::from_u32(fixed_for_char).unwrap())
 		}
 	}
+
+	fn explain_error(e: Error) -> String {
+		match e {
+			Error::NoValue{cell: _cell} => format!("There is no value at cell {}", _cell),
+			Error::NoEmployeeValue => String::from("the Employee register holds no value. Cannot add."),
+			Error::SumOfChars => String::from("cannot sum two characters!"),
+			Error::SumOverflow{character: _char, number: _num} =>
+				format!("value overflowed! {} + {} is not representable as a letter!",
+								_char, _num)
+		}
+	}
 }
 
 impl Operator for AddOp {
@@ -32,47 +50,55 @@ impl Operator for AddOp {
 		false
 	}
 
-  fn apply_to(&self, mut s: state::InternalState) -> state::InternalState {
+  fn apply_to(&self, mut s: state::InternalState) -> Result<state::InternalState, String> {
 		let value_from_memory = s.memory[self.cell].clone();
-		match value_from_memory {
+		let res = match value_from_memory {
 			Some(ref v) => {
 				match s.register {
 					Some(old_register) => {
-						let new_register_value =  match (v, old_register) {
+						let new_register_value: Result<Value, String> =  match (v, old_register) {
 							(&Value::Number{value: _v}, Value::Number{value: _old}) => {
-								Value::Number{value: _v + _old}
+								Ok(Value::Number{value: _v + _old})
 							},
 							(&Value::Number{value: _v}, Value::Character{value: _old}) => {
 								if let Ok(new_char) = AddOp::add_number_and_char(_v, _old) {
-									Value::Character{value: new_char}
+									Ok(Value::Character{value: new_char})
 								}
 								else {
-									panic!("value overflowed! {} + {} is not representable as a letter!", _old, _v);
+									Err(AddOp::explain_error(Error::SumOverflow{character: _old, number: _v}))
 								}
 							},
 							(&Value::Character{value: _v}, Value::Number{value: _old}) => {
 								if let Ok(new_char) = AddOp::add_number_and_char(_old, _v) {
-									Value::Character{value: new_char}
+									Ok(Value::Character{value: new_char})
 								}
 								else {
-									panic!("value overflowed! {} + {} is not representable as a letter!", _old, _v);
+									Err(AddOp::explain_error(Error::SumOverflow{character: _v, number: _old}))
 								}
 							},
-							_ => panic!("cannot sum two characters!")
+							_ => Err(AddOp::explain_error(Error::SumOfChars))
 						};
-						s.register = Some(new_register_value);
+						
+						match new_register_value {
+							Ok(value) => {
+								s.register = Some(value);
+								Ok(s)
+							},
+							Err(reason) => Err(reason)
+						}
 					}
 					_ => {
-						panic!("No value in register Employee, cannot add.");
+						Err(AddOp::explain_error(Error::NoEmployeeValue))
 					}
 				}
 			}
 			_ => {
-				panic!("No value at cell {}", self.cell);
+				Err(AddOp::explain_error(Error::NoValue{cell: self.cell}))
 			}
-		}
+		};
 
-		return s;
+		//return s;
+		res
   }
 }
 

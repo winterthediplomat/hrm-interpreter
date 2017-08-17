@@ -16,9 +16,18 @@ pub struct InternalState {
 macro_rules! apply_operation {
 	($self: ident, $operator:expr) => ({
 		let op = $operator;
-		$self = op.apply_to($self);
-		if !op.changes_instruction_counter() {
-			$self.instruction_counter += 1;
+		let result = op.apply_to($self);
+
+		match result {
+			Ok(new_state) => {
+				$self = new_state;
+				if !op.changes_instruction_counter() {
+					$self.instruction_counter += 1;
+				}
+			},
+			Err(reason) => {
+				panic!(reason)
+			}
 		}
 	})
 }
@@ -37,7 +46,7 @@ impl InternalState {
 			},
 			Operation::CopyFrom{cell: _cell} => {
 				apply_operation!(self, operators::copyfrom::CopyFromOp{cell: _cell});
-			}
+			},
 			Operation::CopyTo{cell: _cell} => {
 				apply_operation!(self, operators::copyto::CopyToOp{cell: _cell});
 			}
