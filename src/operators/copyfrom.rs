@@ -37,7 +37,12 @@ mod test {
 		let operation = CopyFromOp{cell: 0};
 
 		let result = operation.apply_to(&mut state);
-		assert!(result.is_ok())
+
+		assert!(result.is_ok());
+		assert!(match state.register {
+			Some(Value::Number{value: 5}) => true,
+			_ => false
+		});
 	}
 
 	#[test]
