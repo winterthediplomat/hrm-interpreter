@@ -50,7 +50,7 @@ impl Operator for AddOp {
 		false
 	}
 
-  fn apply_to(&self, mut s: state::InternalState) -> Result<state::InternalState, String> {
+  fn apply_to(&self,  s: &mut state::InternalState) -> Result<(), String> {
 		let value_from_memory = s.memory[self.cell].clone();
 		let res = match value_from_memory {
 			Some(ref v) => {
@@ -82,7 +82,7 @@ impl Operator for AddOp {
 						match new_register_value {
 							Ok(value) => {
 								s.register = Some(value);
-								Ok(s)
+								Ok(())
 							},
 							Err(reason) => Err(reason)
 						}
@@ -111,7 +111,7 @@ mod test {
 
 	#[test]
 	fn add_two_numbers(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
@@ -120,7 +120,7 @@ mod test {
 		};
 		let operation = AddOp{cell: 0};
 
-		let state = operation.apply_to(state).unwrap();
+		let _ = operation.apply_to(&mut state).unwrap();
 
 		assert!(match state.register {
 			Some(Value::Number{value: 9}) => true,
@@ -130,7 +130,7 @@ mod test {
 
 	#[test]
 	fn add_number_to_empty_cell(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
@@ -139,37 +139,41 @@ mod test {
 		};
 		let operation = AddOp{cell: 0};
 
-		let state = operation.apply_to(state);
+		let result = operation.apply_to(& mut state);
 
-		assert!(state.is_err());
+		assert!(result.is_err());
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_number_to_empty_register(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: None,
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		
-		state.apply(Operation::Add{cell: 0});
+		let operation = AddOp{cell: 0};
+
+		let result = operation.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_char_to_char(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'a'}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Character{value: 'a'})),
 			instruction_counter: 0
 		};
+		let operator = AddOp{cell: 0};
 
-		state.apply(Operation::Add{cell: 0});
+		let result = operator.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
@@ -182,7 +186,7 @@ mod test {
 			instruction_counter: 0
 		};
 
-		state = state.apply(Operation::Add{cell: 0});
+		let _ = state.apply(Operation::Add{cell: 0});
 
 		assert!(match state.register {
 			Some(Value::Character{value: 'f'}) => true,
@@ -191,17 +195,19 @@ mod test {
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_char_to_number_overflow(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'z'}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
+		let operation = AddOp{cell: 0};
 
-		state.apply(Operation::Add{cell: 0});
+		let result = operation.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 
 	#[test]
@@ -214,7 +220,7 @@ mod test {
 			instruction_counter: 0
 		};
 
-		state = state.apply(Operation::Add{cell: 0});
+		let _ = state.apply(Operation::Add{cell: 0}).unwrap();
 
 		assert!(match state.register {
 			Some(Value::Character{value: 'f'}) => true,
@@ -223,16 +229,18 @@ mod test {
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_number_to_char_overflow(){
-		let state = state::InternalState {
+		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Character{value: 'z'})),
 			instruction_counter: 0
 		};
+		let operation = AddOp{cell: 0};
 
-		state.apply(Operation::Add{cell: 0});
+		let result = operation.apply_to(&mut state);
+
+		assert!(result.is_err());
 	}
 }

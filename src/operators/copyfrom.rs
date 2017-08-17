@@ -7,10 +7,10 @@ pub struct CopyFromOp {
 impl Operator for CopyFromOp {
 	fn changes_instruction_counter(&self) -> bool { false }
 
-	fn apply_to(&self, mut s: InternalState) -> Result<InternalState, String> {
+	fn apply_to(&self, s: &mut InternalState) -> Result<(), String> {
 		if let Some(_) = s.memory[self.cell] {
 			s.register = s.memory[self.cell];
-			Ok(s)
+			Ok(())
 		}
 		else {
 			Err(format!("cell {} holds no value. could not copy a none value to the register", self.cell))
@@ -27,7 +27,7 @@ mod test {
 
 	#[test]
 	fn copyfrom_non_empty_cell(){
-		let state = InternalState{
+		let mut state = InternalState{
 			register: None,
 			memory: vec!(Some(Value::Number{value: 5})),
 			input_tape: vec!(),
@@ -36,13 +36,13 @@ mod test {
 		};
 		let operation = CopyFromOp{cell: 0};
 
-		let result = operation.apply_to(state);
+		let result = operation.apply_to(&mut state);
 		assert!(result.is_ok())
 	}
 
 	#[test]
 	fn copyfrom_empty_cell() {
-		let state = InternalState{
+		let mut state = InternalState{
 			register: None,
 			memory: vec!(None),
 			input_tape: vec!(),
@@ -51,7 +51,7 @@ mod test {
 		};
 		let operation = CopyFromOp{cell: 0};
 
-		let result = operation.apply_to(state);
+		let result = operation.apply_to(&mut state);
 
 		assert!(result.is_err());
 	}
@@ -59,7 +59,7 @@ mod test {
 	#[test]
 	#[should_panic]
 	fn copyfrom_non_existent_cell() {
-		let state = InternalState{
+		let mut state = InternalState{
 			register: None,
 			memory: vec!(None),
 			input_tape: vec!(),
@@ -69,6 +69,6 @@ mod test {
 		let operation = CopyFromOp{cell: 9};
 
 		// #[should_panic]
-		let _ = operation.apply_to(state);
+		let _ = operation.apply_to(&mut state);
 	}
 }

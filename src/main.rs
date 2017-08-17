@@ -31,7 +31,16 @@ fn main() {
 			if internal_state.instruction_counter < code.len() {
 				let _operation = code[internal_state.instruction_counter];
 				println!("applying operation {:?}", _operation);
-				internal_state = internal_state.apply(_operation);
+
+				let result = internal_state.apply(_operation);
+				if result.is_err() {
+					let reason = result.err().unwrap();
+					println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+					println!("Error: {}", reason);
+					println!("Dumping current internal state:");
+					println!("{:?}", internal_state);
+					break;
+				}
 			}
 			else {
 				break;

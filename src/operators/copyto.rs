@@ -7,10 +7,10 @@ pub struct CopyToOp {
 impl Operator for CopyToOp {
 	fn changes_instruction_counter(&self) -> bool { false }
 
-	fn apply_to(&self, mut s: InternalState) -> Result<InternalState, String> {
+	fn apply_to(&self, s: &mut InternalState) -> Result<(), String> {
 		if let Some(value) = s.register {
 			s.memory[self.cell] = Some(value);
-			Ok(s)
+			Ok(())
 		}
 		else {
 			Err(format!("register holds no value. could not copy a None value to {}", self.cell))
