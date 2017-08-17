@@ -97,7 +97,6 @@ impl Operator for AddOp {
 			}
 		};
 
-		//return s;
 		res
   }
 }
@@ -107,18 +106,21 @@ mod test {
 	use state;
 	use Value;
 	use Operation;
+	use operators::Operator;
+	use operators::add::AddOp;
 
 	#[test]
 	fn add_two_numbers(){
-		let mut state = state::InternalState {
+		let state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
 			memory: vec!(Some(Value::Number{value: 4})),
 			instruction_counter: 0
 		};
-		
-		state = state.apply(Operation::Add{cell: 0});
+		let operation = AddOp{cell: 0};
+
+		let state = operation.apply_to(state).unwrap();
 
 		assert!(match state.register {
 			Some(Value::Number{value: 9}) => true,
@@ -127,7 +129,6 @@ mod test {
 	}
 
 	#[test]
-	#[should_panic]
 	fn add_number_to_empty_cell(){
 		let state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
@@ -136,8 +137,11 @@ mod test {
 			memory: vec!(None),
 			instruction_counter: 0
 		};
-		
-		state.apply(Operation::Add{cell: 0});
+		let operation = AddOp{cell: 0};
+
+		let state = operation.apply_to(state);
+
+		assert!(state.is_err());
 	}
 
 	#[test]
