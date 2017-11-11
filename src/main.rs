@@ -1,36 +1,16 @@
 #[macro_use]
 extern crate serde_derive;
-
-extern crate hrm_interpreter;
 extern crate serde;
 extern crate serde_json;
+
+extern crate hrm_interpreter;
 use hrm_interpreter::state;
 use hrm_interpreter::Operation;
 use hrm_interpreter::Value;
-
-//use serde_json::{Value, Error};
-use std::fs::File;
-use std::io::prelude::*;
-use serde_json::from_str;
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-struct JsonOperation {
-    operation: String,
-    operand: Option<String>
-}
-
-fn readIt() {
-    let mut file = File::open("/home/winterthediplomat/projects/hrm-compiler/examples/script10.json").unwrap();
-    let mut contents = String::new();
-    file.read_to_string(&mut contents);
-    
-    let x: Result<Vec<JsonOperation>, _> = serde_json::from_str(&contents);
-    println!("{:?}", x);
-}
+use hrm_interpreter::json::read_file;
 
 fn main() {
-    readIt();
+    read_file();
 
     // create the state to be modified
     let mut internal_state = state::InternalState{
