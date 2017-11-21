@@ -1,8 +1,3 @@
-#[macro_use]
-extern crate serde_derive;
-extern crate serde;
-extern crate serde_json;
-
 extern crate hrm_interpreter;
 use hrm_interpreter::state;
 use hrm_interpreter::Operation;
@@ -10,20 +5,20 @@ use hrm_interpreter::Value;
 use hrm_interpreter::json::read_file;
 
 fn main() {
-    read_file();
+    let code = read_file();
 
     // create the state to be modified
     let mut internal_state = state::InternalState{
 			register: None,
 			input_tape: vec!(
-				Value::Number{value: 8}
+				Value::Number{value: 1}
 			),
 			output_tape: vec!(),
 			instruction_counter: 0,
 			memory: vec!(None, None, None, None, None)
 		};
 
-    let code : Vec<Operation> = vec!(
+/*    let code : Vec<Operation> = vec!(
 			Operation::Inbox{},
 			Operation::CopyTo{cell: 0},
 			Operation::Add{cell: 0},
@@ -33,7 +28,7 @@ fn main() {
 			Operation::Add{cell: 2},
 			Operation::Outbox{}
 		);
-
+*/
 		loop {
 			if internal_state.instruction_counter < code.len() {
 				let _operation = code[internal_state.instruction_counter];
