@@ -23,8 +23,8 @@ fn to_operator(json_op: JsonOperation) -> Operation {
     else { return Operation::Outbox{}; }
 }
 
-pub fn read_file() -> Vec<Operation> {
-    let mut file = File::open("/home/winterthediplomat/projects/hrm-compiler/examples/script10.json").unwrap();
+pub fn read_file(srcpath: String) -> Vec<Operation> {
+    let mut file = File::open(srcpath).unwrap();
     let mut contents = String::new();
     file.read_to_string(&mut contents);
     

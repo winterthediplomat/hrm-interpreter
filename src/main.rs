@@ -1,11 +1,23 @@
+extern crate clap;
+
 extern crate hrm_interpreter;
 use hrm_interpreter::state;
 use hrm_interpreter::Value;
 use hrm_interpreter::json::read_file;
+use clap::{Arg, App};
 
 fn main() {
-    let code = read_file();
+    let app_data = App::new("hrm-interpreter")
+                  .version("0.1")
+		  .arg(Arg::with_name("code")
+		       .short("c")
+		       .long("code")
+		       .value_name("CODE")
+		       .takes_value(true));
+    let matches = app_data.get_matches();
+    let srcpath = matches.value_of("code").unwrap();
 
+    let code = read_file(String::from(srcpath));
     // create the state to be modified
     let mut internal_state = state::InternalState{
 			register: None,
