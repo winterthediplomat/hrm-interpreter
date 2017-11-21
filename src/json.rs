@@ -29,12 +29,8 @@ pub fn read_file() -> Vec<Operation> {
     file.read_to_string(&mut contents);
     
     let x: Result<Vec<JsonOperation>, _> = serde_json::from_str(&contents);
-    println!("{:?}", x);
-
     let mut res: Vec<Operation> = vec!(); 
-
     for json_op in x.unwrap() {
-        println!("{:?}", to_operator(json_op.clone()));
 	res.push(to_operator(json_op.clone()));
     }
 
