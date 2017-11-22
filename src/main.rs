@@ -1,9 +1,7 @@
 extern crate clap;
 
 extern crate hrm_interpreter;
-use hrm_interpreter::state;
-use hrm_interpreter::Value;
-use hrm_interpreter::json::read_file;
+use hrm_interpreter::json::{read_file, read_config};
 use clap::{Arg, App};
 
 fn main() {
@@ -13,21 +11,20 @@ fn main() {
 		       .short("c")
 		       .long("code")
 		       .value_name("CODE")
+		       .takes_value(true))
+		  .arg(Arg::with_name("input")
+		       .short("i")
+		       .long("input")
+		       .value_name("INPUT")
 		       .takes_value(true));
+
     let matches = app_data.get_matches();
     let srcpath = matches.value_of("code").unwrap();
+    let inputpath = matches.value_of("input").unwrap();
 
     let code = read_file(String::from(srcpath));
     // create the state to be modified
-    let mut internal_state = state::InternalState{
-			register: None,
-			input_tape: vec!(
-				Value::Number{value: 1}
-			),
-			output_tape: vec!(),
-			instruction_counter: 0,
-			memory: vec!(None, None, None, None, None)
-		};
+    let mut internal_state = read_config(String::from(inputpath));
 
 		loop {
 			if internal_state.instruction_counter < code.len() {
