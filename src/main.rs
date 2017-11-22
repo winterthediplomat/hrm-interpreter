@@ -1,31 +1,30 @@
-extern crate hrm_interpreter;
+extern crate clap;
 
-use hrm_interpreter::state;
-use hrm_interpreter::Operation;
-use hrm_interpreter::Value;
+extern crate hrm_interpreter;
+use hrm_interpreter::json::{read_file, read_config};
+use clap::{Arg, App};
 
 fn main() {
-    // create the state to be modified
-    let mut internal_state = state::InternalState{
-			register: None,
-			input_tape: vec!(
-				Value::Number{value: 8}
-			),
-			output_tape: vec!(),
-			instruction_counter: 0,
-			memory: vec!(None, None, None, None, None)
-		};
+    let app_data = App::new("hrm-interpreter")
+                  .version("0.1")
+		  .arg(Arg::with_name("code")
+		       .short("c")
+		       .long("code")
+		       .value_name("CODE")
+		       .takes_value(true))
+		  .arg(Arg::with_name("input")
+		       .short("i")
+		       .long("input")
+		       .value_name("INPUT")
+		       .takes_value(true));
 
-    let code : Vec<Operation> = vec!(
-			Operation::Inbox{},
-			Operation::CopyTo{cell: 0},
-			Operation::Add{cell: 0},
-			Operation::CopyTo{cell: 1},
-			Operation::Add{cell: 1},
-			Operation::CopyTo{cell: 2},
-			Operation::Add{cell: 2},
-			Operation::Outbox{}
-		);
+    let matches = app_data.get_matches();
+    let srcpath = matches.value_of("code").unwrap();
+    let inputpath = matches.value_of("input").unwrap();
+
+    let code = read_file(String::from(srcpath));
+    // create the state to be modified
+    let mut internal_state = read_config(String::from(inputpath));
 
 		loop {
 			if internal_state.instruction_counter < code.len() {
