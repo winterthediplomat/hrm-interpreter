@@ -6,6 +6,8 @@ use Operation;
 use Value;
 use state::InternalState;
 
+// TODO(alfateam123): create ad-hoc type for operands in order to
+// refactor `to_operator`. Fix it when addresses are introduced.
 #[derive(Debug, Deserialize, Clone)]
 pub struct JsonOperation {
     operation: String,
