@@ -48,6 +48,9 @@ impl InternalState {
 			},
 			Operation::CopyTo{cell: _cell} => {
 				apply_operation!(self, operators::copyto::CopyToOp{cell: _cell})
+			},
+			Operation::Label => {
+				apply_operation!(self, operators::jump::LabelOp)
 			}
 		}
 	}

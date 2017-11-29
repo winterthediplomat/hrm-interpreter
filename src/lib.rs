@@ -16,6 +16,7 @@ pub enum Operation {
 	Add{cell: usize},
 	CopyFrom{cell: usize},
 	CopyTo{cell: usize},
+	Label
 }
 
 pub mod json;
