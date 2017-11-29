@@ -42,6 +42,9 @@ fn to_operator(json_op: JsonOperation) -> Operation {
     else if json_op.operation == String::from("copyto") {
         return Operation::CopyTo{cell: json_op.operand.unwrap().parse::<usize>().unwrap()};
     }
+    else if json_op.operation == String::from("label") {
+        return Operation::Label{};
+    }
     else { return Operation::Outbox{}; }
 }
 
@@ -79,4 +82,20 @@ pub fn read_config(path: String) -> InternalState  {
 	    None => None
         }).collect()
     };
+}
+
+#[cfg(test)]
+mod test {
+    use Operation;
+    use json::{to_operator, JsonOperation};
+
+    #[test]
+    fn to_operator_label() {
+        let src = JsonOperation{operation: String::from("label"), operand: Some(String::from("mylabel"))};
+	let result = to_operator(src);
+	assert!(match result {
+	  Operation::Label => true,
+	  _ => false
+	});
+    }
 }
