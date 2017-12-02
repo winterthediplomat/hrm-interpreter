@@ -31,7 +31,7 @@ struct Config {
     memory: Vec<Option<JsonValue>>
 }
 
-fn to_operator(json_op: JsonOperation) -> Operation {
+fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) -> Operation {
     if json_op.operation == String::from("inbox"){ return Operation::Inbox{}; }
     else if json_op.operation == String::from("add") {
         return Operation::Add{cell: json_op.operand.unwrap().parse::<usize>().unwrap()};
@@ -48,15 +48,33 @@ fn to_operator(json_op: JsonOperation) -> Operation {
     else { return Operation::Outbox{}; }
 }
 
+fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)> {
+    let mut labels : Vec<(String, usize)> = vec!();
+
+    let mut index = 0;
+    for operation in source_code {
+        if operation.operation == String::from("label") {
+           labels.push((operation.clone().operand.unwrap(), index));
+        }
+        index += 1;
+    }
+
+   return labels;
+}
+
 pub fn read_file(srcpath: String) -> Vec<Operation> {
     let mut file = File::open(srcpath).unwrap();
     let mut contents = String::new();
-    file.read_to_string(&mut contents);
+    let file_read_ok = file.read_to_string(&mut contents);
+    if file_read_ok.is_err() {
+        panic!("could not read the file!");
+    }
     
-    let source_code: Result<Vec<JsonOperation>, _> = serde_json::from_str(&contents);
+    let source_code: Vec<JsonOperation> = serde_json::from_str(&contents).unwrap();
+    let position_for_label = labels_to_positions(&source_code);
     let mut res: Vec<Operation> = vec!(); 
-    for json_op in source_code.unwrap() {
-	res.push(to_operator(json_op.clone()));
+    for json_op in source_code {
+	res.push(to_operator(json_op.clone(), &position_for_label));
     }
 
     return res;
@@ -65,7 +83,10 @@ pub fn read_file(srcpath: String) -> Vec<Operation> {
 pub fn read_config(path: String) -> InternalState  {
     let mut file = File::open(path).unwrap();
     let mut contents = String::new();
-    file.read_to_string(&mut contents);
+    let file_read_ok = file.read_to_string(&mut contents);
+    if file_read_ok.is_err() {
+        panic!("could not read the file!");
+    }
 
     let input_config: Config = serde_json::from_str(&contents).unwrap();
     return InternalState{
@@ -87,15 +108,44 @@ pub fn read_config(path: String) -> InternalState  {
 #[cfg(test)]
 mod test {
     use Operation;
-    use json::{to_operator, JsonOperation};
+    use json::{to_operator, JsonOperation, labels_to_positions};
 
     #[test]
     fn to_operator_label() {
+        let empty_labels_mapping = vec!();
         let src = JsonOperation{operation: String::from("label"), operand: Some(String::from("mylabel"))};
-	let result = to_operator(src);
+	let result = to_operator(src, &empty_labels_mapping);
 	assert!(match result {
 	  Operation::Label => true,
 	  _ => false
 	});
+    }
+
+    #[test]
+    fn labels_to_positions_empty_code() {
+        let empty_vec = vec!();
+        let result = labels_to_positions(&empty_vec);
+	assert!(result.len() == 0);
+    }
+
+    #[test]
+    fn labels_to_positions_no_labels() {
+        let operations = vec!(JsonOperation{operation: String::from("copyto"), operand: Some(String::from("2"))});
+	let result = labels_to_positions(&operations);
+	assert!(result.len() == 0);
+    }
+
+    #[test]
+    fn labels_to_positions_with_labels() {
+        let operations = vec!(
+	    JsonOperation{operation: String::from("label"), operand: Some(String::from("firstlabel"))},
+	    JsonOperation{operation: String::from("inbox"), operand: None},
+	    JsonOperation{operation: String::from("label"), operand: Some(String::from("secondlabel"))},
+	    JsonOperation{operation: String::from("jmp"), operand: Some(String::from("firstlabel"))}
+	);
+	let result = labels_to_positions(&operations);
+	assert!(result.len() == 2);
+	assert!(result[0] == (String::from("firstlabel"), 0));
+	assert!(result[1] == (String::from("secondlabel"), 2));
     }
 }
