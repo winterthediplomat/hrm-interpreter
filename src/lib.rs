@@ -16,6 +16,9 @@ pub enum Operation {
 	Add{cell: usize},
 	CopyFrom{cell: usize},
 	CopyTo{cell: usize},
+	Label,
+	Jump{next_operation: usize},
+	JumpEqualsZero{next_operation: usize}
 }
 
 pub mod json;
