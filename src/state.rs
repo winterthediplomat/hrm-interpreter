@@ -62,7 +62,14 @@ impl InternalState {
 			},
 			Operation::Label => {
 				apply_operation!(self, operators::jump::LabelOp)
+			},
+			Operation::Jump{next_operation: _next_op} => {
+				apply_operation!(self, operators::jump::JumpOp{next_operation: _next_op})
+			},
+			Operation::JumpEqualsZero{next_operation: _next_op} => {
+				apply_operation!(self, operators::jump::JumpEqualsZeroOp{next_operation: _next_op})
 			}
+
 		}
 	}
 }

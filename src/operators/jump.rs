@@ -15,7 +15,7 @@ impl Operator for LabelOp {
 
 #[derive(Debug, Clone, Copy)]
 pub struct JumpOp {
-    next_operation: usize
+    pub next_operation: usize
 }
 
 impl Operator for JumpOp {
@@ -29,7 +29,7 @@ impl Operator for JumpOp {
 
 #[derive(Debug, Clone, Copy)]
 pub struct JumpEqualsZeroOp {
-    next_operation: usize
+    pub next_operation: usize
 }
 
 impl Operator for JumpEqualsZeroOp {
