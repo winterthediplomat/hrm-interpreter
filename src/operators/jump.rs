@@ -38,14 +38,18 @@ impl Operator for JumpEqualsZeroOp {
 
     fn apply_to(&self, s: &mut state::InternalState) -> Result<(), String> {
         match s.register {
+	    None => {
+	        Err(String::from("register holds no value! cannot compare it to zero!"))
+	    }
 	    Some(Value::Number{value: 0}) => {
 	        s.instruction_counter = self.next_operation;
+		Ok(())
 	    },
 	    _ => {
 	        s.instruction_counter += 1;
+		Ok(())
 	    }
 	}
-	Ok(())
     }
 }
 
@@ -74,5 +78,13 @@ mod test {
         _op.apply_to(&mut _state).unwrap();
 
 	assert!(_state.instruction_counter == 1);
+    }
+
+    #[test]
+    fn jez_no_register_value() {
+        let mut _state = InternalState::new(None, 0);
+	let _op = JumpEqualsZeroOp{next_operation: 15};
+
+        assert!(_op.apply_to(&mut _state).is_err());
     }
 }
