@@ -32,6 +32,17 @@ macro_rules! apply_operation {
 }
 
 impl InternalState {
+
+    pub fn new(register: Option<Value>, counter: usize) -> InternalState {
+        InternalState {
+	    register: register,
+	    input_tape: vec!(),
+	    output_tape: vec!(),
+	    memory: vec!(),
+	    instruction_counter: counter
+	}
+    }
+
 	pub fn apply(&mut self, op: Operation) -> Result<(), String> {
 		match op {
 			Operation::Add{cell: _cell} => {
