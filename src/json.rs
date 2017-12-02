@@ -45,7 +45,16 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
     else if json_op.operation == String::from("label") {
         return Operation::Label{};
     }
-    else { return Operation::Outbox{}; }
+    else if json_op.operation == String::from("jmp") {
+        let next_position = position_from_label(&json_op.operand.unwrap(), &labels_mapping).unwrap();
+        return Operation::Jump{next_operation: next_position};
+    }
+    else if json_op.operation == String::from("jez") {
+        let next_position = position_from_label(&json_op.operand.unwrap(), &labels_mapping).unwrap();
+        return Operation::JumpEqualsZero{next_operation: next_position};
+    }
+    else if json_op.operation == String::from("outbox") { return Operation::Outbox{}; }
+    else { panic!(format!("unrecognized operation {}", json_op.operation)) }
 }
 
 fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)> {
@@ -60,6 +69,18 @@ fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)>
     }
 
    return labels;
+}
+
+fn position_from_label(label: &String, mapping: &Vec<(String, usize)>) -> Option<usize> {
+    mapping.iter().filter_map(|pair| {
+        let &(ref candidate_label, position) = pair;
+	if label == candidate_label {
+	    return Some(position);
+	}
+	else {
+	    return None
+	}
+    }).last()
 }
 
 pub fn read_file(srcpath: String) -> Vec<Operation> {
@@ -111,6 +132,14 @@ mod test {
     use json::{to_operator, JsonOperation, labels_to_positions};
 
     #[test]
+    #[should_panic]
+    fn to_operator_unknown() {
+        let empty_labels_mapping = vec!();
+        let src = JsonOperation{operation: String::from("fsdfsadfsadjsdf"), operand: None};
+	to_operator(src, &empty_labels_mapping);
+    }
+
+    #[test]
     fn to_operator_label() {
         let empty_labels_mapping = vec!();
         let src = JsonOperation{operation: String::from("label"), operand: Some(String::from("mylabel"))};
@@ -119,6 +148,28 @@ mod test {
 	  Operation::Label => true,
 	  _ => false
 	});
+    }
+
+    #[test]
+    fn to_operator_jump_label_found() {
+        let mapping = vec!((String::from("myLabel"), 3));
+	let operation = JsonOperation{operation: String::from("jmp"), operand: Some(String::from("myLabel"))};
+
+	let result = to_operator(operation, &mapping);
+
+	assert!(match result {
+	    Operation::Jump{next_operation: 3} => true,
+	    _ => false
+	});
+    }
+
+    #[test]
+    #[should_panic]
+    fn to_operator_jump_label_not_found() {
+        let mapping = vec!((String::from("myLabel"), 3));
+	let operation = JsonOperation{operation: String::from("jmp"), operand: Some(String::from("fdfsdfsadj"))};
+
+	to_operator(operation, &mapping);
     }
 
     #[test]
