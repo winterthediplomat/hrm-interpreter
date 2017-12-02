@@ -8,8 +8,7 @@ pub struct LabelOp;
 impl Operator for LabelOp {
     fn changes_instruction_counter(&self) -> bool { false }
 
-    fn apply_to(&self, s: &mut state::InternalState) -> Result<(), String> {
-        s.instruction_counter += 1;
+    fn apply_to(&self, _: &mut state::InternalState) -> Result<(), String> {
 	Ok(())
     }
 }
@@ -56,9 +55,20 @@ impl Operator for JumpEqualsZeroOp {
 #[cfg(test)]
 mod test {
     use operators::Operator;
+    use operators::jump::LabelOp;
     use operators::jump::JumpEqualsZeroOp;
     use state::InternalState;
     use Value;
+
+    #[test]
+    fn label_does_not_change_instruction_counter() {
+        let mut _state = InternalState::new(Some(Value::Number{value: 0}), 0);
+	let _op = LabelOp;
+
+        _op.apply_to(&mut _state).unwrap();
+
+	assert!(_state.instruction_counter == 0);
+    }
 
     #[test]
     fn jez_register_is_zero() {
