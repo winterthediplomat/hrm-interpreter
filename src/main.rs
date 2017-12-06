@@ -46,6 +46,27 @@ fn main() {
 			}
 		}
 
-		// print internal state
-		println!("{:?}", internal_state);
+		let mut errored = false;
+		let mut reason = String::new();
+		{
+			let x = CodeIterator::new(&mut internal_state, code);
+
+			for operation_result in x {
+				if operation_result.is_err() {
+					errored = true;
+					reason = operation_result.err().unwrap();
+					break;
+				}
+			}
+		}
+
+		if errored {
+			println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+			println!("Error: {}", reason);
+			println!("Dumping current internal state:");
+			println!("{:?}", internal_state);
+		}
+		else {
+			println!("{:?}", internal_state);
+		}
 }

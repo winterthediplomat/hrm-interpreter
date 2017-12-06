@@ -24,3 +24,40 @@ pub enum Operation {
 pub mod json;
 pub mod operators;
 pub mod state;
+
+pub struct CodeIterator<'a> {
+	pub state: &'a mut state::InternalState,
+	pub operations: Vec<Operation>,
+	has_errored: bool
+}
+
+impl<'a> CodeIterator<'a> {
+	pub fn new(_state: &'a mut state::InternalState, _operations: Vec<Operation>) -> Self {
+		CodeIterator{state: _state, operations: _operations, has_errored: false}
+	}
+}
+
+impl<'a> Iterator for CodeIterator<'a> {
+	type Item = Result<(), String>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		if self.has_errored {
+			None
+		}
+		else if self.state.instruction_counter < self.operations.len() {
+			let _operation = self.operations[self.state.instruction_counter];
+			println!("applying operation {:?}", _operation);
+
+			let result = self.state.apply(_operation);
+
+			if result.is_err() {
+				self.has_errored = true;
+			}
+
+			Some(result)
+		}
+		else {
+			None
+		}
+	}
+}
