@@ -30,9 +30,9 @@ fn main() {
 		let mut errored = false;
 		let mut reason = String::new();
 		{
-			let x = CodeIterator::new(&mut internal_state, code);
+			let code_execution = CodeIterator::new(&mut internal_state, code);
 
-			for operation_result in x {
+			for operation_result in code_execution {
 				if operation_result.is_err() {
 					errored = true;
 					reason = operation_result.err().unwrap();
