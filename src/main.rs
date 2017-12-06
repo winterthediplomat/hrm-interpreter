@@ -2,6 +2,7 @@ extern crate clap;
 
 extern crate hrm_interpreter;
 use hrm_interpreter::json::{read_file, read_config};
+use hrm_interpreter::CodeIterator;
 use clap::{Arg, App};
 
 fn main() {
@@ -25,26 +26,6 @@ fn main() {
     let code = read_file(String::from(srcpath));
     // create the state to be modified
     let mut internal_state = read_config(String::from(inputpath));
-
-		loop {
-			if internal_state.instruction_counter < code.len() {
-				let _operation = code[internal_state.instruction_counter];
-				println!("applying operation {:?}", _operation);
-
-				let result = internal_state.apply(_operation);
-				if result.is_err() {
-					let reason = result.err().unwrap();
-					println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-					println!("Error: {}", reason);
-					println!("Dumping current internal state:");
-					println!("{:?}", internal_state);
-					break;
-				}
-			}
-			else {
-				break;
-			}
-		}
 
 		let mut errored = false;
 		let mut reason = String::new();

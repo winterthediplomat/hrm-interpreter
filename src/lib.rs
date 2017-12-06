@@ -51,7 +51,13 @@ impl<'a> Iterator for CodeIterator<'a> {
 			let result = self.state.apply(_operation);
 
 			if result.is_err() {
-				self.has_errored = true;
+				if let Operation::Inbox =  _operation {
+					self.has_errored = false;
+					return None;
+				}
+				else {
+					self.has_errored = true;
+				}
 			}
 
 			Some(result)
