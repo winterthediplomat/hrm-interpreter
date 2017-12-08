@@ -39,6 +39,15 @@ struct Config {
     memory: Vec<Option<JsonValue>>
 }
 
+impl JsonOperation {
+    fn new(operation: String, operand: Option<JsonOperand>) -> Self {
+        Self {
+            operation: operation,
+            operand: operand
+        }
+    }
+}
+
 fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) -> Operation {
     if json_op.operation == String::from("inbox"){ return Operation::Inbox{}; }
     else if json_op.operation == String::from("add") {
@@ -51,7 +60,7 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
     }
     else if json_op.operation == String::from("copyfrom") {
         let cell = match json_op.operand.unwrap() {
-            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'copyfrom'"),
             JsonOperand::Address(cell) => Location::Address(cell as usize),
             JsonOperand::Cell(cell) => Location::Cell(cell as usize)
         };
@@ -59,7 +68,7 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
     }
     else if json_op.operation == String::from("copyto") {
         let cell = match json_op.operand.unwrap() {
-            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'copyto'"),
             JsonOperand::Address(cell) => Location::Address(cell as usize),
             JsonOperand::Cell(cell) => Location::Cell(cell as usize)
         };
@@ -109,12 +118,12 @@ fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)>
 fn position_from_label(label: &String, mapping: &Vec<(String, usize)>) -> Option<usize> {
     mapping.iter().filter_map(|pair| {
         let &(ref candidate_label, position) = pair;
-	if label == candidate_label {
-	    return Some(position);
-	}
-	else {
-	    return None
-	}
+        if label == candidate_label {
+            return Some(position);
+        }
+        else {
+            return None
+        }
     }).last()
 }
 
@@ -148,15 +157,15 @@ pub fn read_config(path: String) -> InternalState  {
     return InternalState{
         register: None,
         input_tape: input_config.input_tape.into_iter().map(|input| match input {
-	    JsonValue::Number(num_) => Value::Number{value: num_},
-	    JsonValue::Character(char_) => Value::Character{value: char_}
+            JsonValue::Number(num_) => Value::Number{value: num_},
+            JsonValue::Character(char_) => Value::Character{value: char_}
         }).collect(),
         output_tape: vec!(),
         instruction_counter: 0,
         memory: input_config.memory.into_iter().map(|memory_value| match memory_value {
-	    Some(JsonValue::Number(num_)) => Some(Value::Number{value: num_}),
-	    Some(JsonValue::Character(char_)) => Some(Value::Character{value: char_}),
-	    None => None
+            Some(JsonValue::Number(num_)) => Some(Value::Number{value: num_}),
+            Some(JsonValue::Character(char_)) => Some(Value::Character{value: char_}),
+            None => None
         }).collect()
     };
 }
@@ -166,74 +175,95 @@ mod test {
     use Operation;
     use json::to_operator;
     use json::JsonOperation;
+    use json::JsonOperand;
     use json::labels_to_positions;
 
     #[test]
     #[should_panic]
     fn to_operator_unknown() {
         let empty_labels_mapping = vec!();
-        let src = JsonOperation{operation: String::from("fsdfsadfsadjsdf"), operand: None};
-	to_operator(src, &empty_labels_mapping);
+        let src = JsonOperation{
+            operation: String::from("fsdfsadfsadjsdf"),
+            operand: None
+        };
+
+        to_operator(src, &empty_labels_mapping);
     }
 
     #[test]
     fn to_operator_label() {
         let empty_labels_mapping = vec!();
-        let src = JsonOperation{operation: String::from("label"), operand: Some(String::from("mylabel"))};
-	let result = to_operator(src, &empty_labels_mapping);
-	assert!(match result {
-	  Operation::Label => true,
-	  _ => false
-	});
+        let src = JsonOperation{
+            operation: String::from("label"),
+            operand: Some(JsonOperand::Label(String::from("mylabel")))
+        };
+        let result = to_operator(src, &empty_labels_mapping);
+
+        assert!(match result {
+            Operation::Label => true,
+            _ => false
+        });
     }
 
     #[test]
     fn to_operator_jump_label_found() {
         let mapping = vec!((String::from("myLabel"), 3));
-	let operation = JsonOperation{operation: String::from("jmp"), operand: Some(String::from("myLabel"))};
+        let operation = JsonOperation{
+            operation: String::from("jmp"),
+            operand: Some(JsonOperand::Label(String::from("myLabel")))
+        };
 
-	let result = to_operator(operation, &mapping);
+        let result = to_operator(operation, &mapping);
 
-	assert!(match result {
-	    Operation::Jump{next_operation: 3} => true,
-	    _ => false
-	});
+        assert!(match result {
+            Operation::Jump{next_operation: 3} => true,
+            _ => false
+        });
     }
 
     #[test]
     #[should_panic]
     fn to_operator_jump_label_not_found() {
         let mapping = vec!((String::from("myLabel"), 3));
-	let operation = JsonOperation{operation: String::from("jmp"), operand: Some(String::from("fdfsdfsadj"))};
+        let operation = JsonOperation{
+            operation: String::from("jmp"),
+            operand: Some(JsonOperand::Label(String::from("fdfsdfsadj")))
+        };
 
-	to_operator(operation, &mapping);
+        to_operator(operation, &mapping);
     }
 
     #[test]
     fn labels_to_positions_empty_code() {
         let empty_vec = vec!();
         let result = labels_to_positions(&empty_vec);
-	assert!(result.len() == 0);
+        assert!(result.len() == 0);
     }
 
     #[test]
     fn labels_to_positions_no_labels() {
-        let operations = vec!(JsonOperation{operation: String::from("copyto"), operand: Some(String::from("2"))});
-	let result = labels_to_positions(&operations);
-	assert!(result.len() == 0);
+        let operations = vec!(
+            JsonOperation{
+                operation: String::from("copyto"),
+                operand: Some(JsonOperand::Cell(2))
+        });
+        let result = labels_to_positions(&operations);
+        assert!(result.len() == 0);
     }
 
     #[test]
     fn labels_to_positions_with_labels() {
         let operations = vec!(
-	    JsonOperation{operation: String::from("label"), operand: Some(String::from("firstlabel"))},
-	    JsonOperation{operation: String::from("inbox"), operand: None},
-	    JsonOperation{operation: String::from("label"), operand: Some(String::from("secondlabel"))},
-	    JsonOperation{operation: String::from("jmp"), operand: Some(String::from("firstlabel"))}
-	);
-	let result = labels_to_positions(&operations);
-	assert!(result.len() == 2);
-	assert!(result[0] == (String::from("firstlabel"), 0));
-	assert!(result[1] == (String::from("secondlabel"), 2));
+            JsonOperation::new(String::from("label"), Some(JsonOperand::Label(String::from("firstlabel")))),
+            JsonOperation::new(String::from("inbox"), None),
+            JsonOperation::new(String::from("label"), Some(JsonOperand::Label(String::from("secondlabel")))),
+            JsonOperation::new(String::from("jmp"), Some(JsonOperand::Label(String::from("firstlabel"))))
+        );
+
+        let result = labels_to_positions(&operations);
+
+        assert!(result.len() == 2);
+        assert!(result[0] == (String::from("firstlabel"), 0));
+        assert!(result[1] == (String::from("secondlabel"), 2));
     }
 }
