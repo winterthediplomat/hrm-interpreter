@@ -7,15 +7,22 @@ use Value;
 use Location;
 use state::InternalState;
 
-// TODO(alfateam123): create ad-hoc type for operands in order to
-// refactor `to_operator`. Fix it when addresses are introduced.
+
+// JSON data format for json-ified source code
+#[derive(Debug, Deserialize, Clone)]
+pub enum JsonOperand {
+    Label(String),
+    Address(u32),
+    Cell(u32)
+}
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct JsonOperation {
     operation: String,
-    operand: Option<String>
+    operand: Option<JsonOperand>
 }
 
-// JSON data format:
+// JSON data format for input files:
 // using ::Value directly forces users to write horrible things,
 // such as "input_tape": [{"Number": {"value": 3}}].
 // Users can now write "input_tape: [3] and be happy.
@@ -35,27 +42,49 @@ struct Config {
 fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) -> Operation {
     if json_op.operation == String::from("inbox"){ return Operation::Inbox{}; }
     else if json_op.operation == String::from("add") {
-        let cell_to_add = json_op.operand.unwrap().parse::<usize>().unwrap();
-        return Operation::Add{cell: Location::Cell(cell_to_add as usize)};
+        let cell_to_add = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::Add{cell: cell_to_add};
     }
     else if json_op.operation == String::from("copyfrom") {
-        let cell = json_op.operand.unwrap().parse::<usize>().unwrap();
-        return Operation::CopyFrom{cell: Location::Cell(cell)};
+        let cell = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::CopyFrom{cell: cell};
     }
     else if json_op.operation == String::from("copyto") {
-        let cell = json_op.operand.unwrap().parse::<usize>().unwrap();
-        return Operation::CopyTo{cell: Location::Cell(cell)};
+        let cell = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::CopyTo{cell: cell};
     }
     else if json_op.operation == String::from("label") {
         return Operation::Label{};
     }
     else if json_op.operation == String::from("jmp") {
-        let next_position = position_from_label(&json_op.operand.unwrap(), &labels_mapping).unwrap();
-        return Operation::Jump{next_operation: next_position};
+        if let JsonOperand::Label(label_name) = json_op.operand.unwrap() {
+            let next_position = position_from_label(&label_name, &labels_mapping).unwrap();
+            return Operation::Jump{next_operation: next_position};
+        }
+        else {
+            panic!("only Labels are valid operands for jmp");
+        }
     }
     else if json_op.operation == String::from("jez") {
-        let next_position = position_from_label(&json_op.operand.unwrap(), &labels_mapping).unwrap();
-        return Operation::JumpEqualsZero{next_operation: next_position};
+        if let JsonOperand::Label(label_name) = json_op.operand.unwrap() {
+            let next_position = position_from_label(&label_name, &labels_mapping).unwrap();
+            return Operation::JumpEqualsZero{next_operation: next_position};
+        }
+        else {
+            panic!("only Labels are valid operands for jmp");
+        }
     }
     else if json_op.operation == String::from("outbox") { return Operation::Outbox{}; }
     else { panic!(format!("unrecognized operation {}", json_op.operation)) }
@@ -67,8 +96,9 @@ fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)>
     let mut index = 0;
     for operation in source_code {
         if operation.operation == String::from("label") {
-            let label_name = operation.clone().operand.unwrap();
-            labels.push((label_name, index));
+            if let JsonOperand::Label(label_name) = operation.clone().operand.unwrap() {
+                labels.push((label_name, index));
+            }
         }
         index += 1;
     }
