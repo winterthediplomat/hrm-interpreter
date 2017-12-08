@@ -20,7 +20,7 @@ pub enum Operation {
 	Inbox,
 	Outbox,
 	Add{cell: Location},
-	CopyFrom{cell: usize},
+	CopyFrom{cell: Location},
 	CopyTo{cell: usize},
 	Label,
 	Jump{next_operation: usize},
