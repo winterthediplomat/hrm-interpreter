@@ -4,6 +4,7 @@ use serde_json;
 
 use Operation;
 use Value;
+use Location;
 use state::InternalState;
 
 // TODO(alfateam123): create ad-hoc type for operands in order to
@@ -34,7 +35,8 @@ struct Config {
 fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) -> Operation {
     if json_op.operation == String::from("inbox"){ return Operation::Inbox{}; }
     else if json_op.operation == String::from("add") {
-        return Operation::Add{cell: json_op.operand.unwrap().parse::<usize>().unwrap()};
+        let cell_to_add = json_op.operand.unwrap().parse::<usize>().unwrap();
+        return Operation::Add{cell: Location::Cell(cell_to_add as usize)};
     }
     else if json_op.operation == String::from("copyfrom") {
         return Operation::CopyFrom{cell: json_op.operand.unwrap().parse::<usize>().unwrap()};
@@ -63,7 +65,8 @@ fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)>
     let mut index = 0;
     for operation in source_code {
         if operation.operation == String::from("label") {
-           labels.push((operation.clone().operand.unwrap(), index));
+            let label_name = operation.clone().operand.unwrap();
+            labels.push((label_name, index));
         }
         index += 1;
     }
@@ -90,12 +93,12 @@ pub fn read_file(srcpath: String) -> Vec<Operation> {
     if file_read_ok.is_err() {
         panic!("could not read the file!");
     }
-    
+
     let source_code: Vec<JsonOperation> = serde_json::from_str(&contents).unwrap();
     let position_for_label = labels_to_positions(&source_code);
-    let mut res: Vec<Operation> = vec!(); 
+    let mut res: Vec<Operation> = vec!();
     for json_op in source_code {
-	res.push(to_operator(json_op.clone(), &position_for_label));
+        res.push(to_operator(json_op.clone(), &position_for_label));
     }
 
     return res;
@@ -129,7 +132,9 @@ pub fn read_config(path: String) -> InternalState  {
 #[cfg(test)]
 mod test {
     use Operation;
-    use json::{to_operator, JsonOperation, labels_to_positions};
+    use json::to_operator;
+    use json::JsonOperation;
+    use json::labels_to_positions;
 
     #[test]
     #[should_panic]
