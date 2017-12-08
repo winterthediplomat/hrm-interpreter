@@ -21,7 +21,7 @@ pub enum Operation {
 	Outbox,
 	Add{cell: Location},
 	CopyFrom{cell: Location},
-	CopyTo{cell: usize},
+	CopyTo{cell: Location},
 	Label,
 	Jump{next_operation: usize},
 	JumpEqualsZero{next_operation: usize}

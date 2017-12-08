@@ -43,7 +43,8 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
         return Operation::CopyFrom{cell: Location::Cell(cell)};
     }
     else if json_op.operation == String::from("copyto") {
-        return Operation::CopyTo{cell: json_op.operand.unwrap().parse::<usize>().unwrap()};
+        let cell = json_op.operand.unwrap().parse::<usize>().unwrap();
+        return Operation::CopyTo{cell: Location::Cell(cell)};
     }
     else if json_op.operation == String::from("label") {
         return Operation::Label{};
