@@ -10,12 +10,18 @@ pub enum Value {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub enum Location {
+	Cell(usize),
+	Address(usize)
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum Operation {
 	Inbox,
 	Outbox,
-	Add{cell: usize},
-	CopyFrom{cell: usize},
-	CopyTo{cell: usize},
+	Add{cell: Location},
+	CopyFrom{cell: Location},
+	CopyTo{cell: Location},
 	Label,
 	Jump{next_operation: usize},
 	JumpEqualsZero{next_operation: usize}

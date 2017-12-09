@@ -1,18 +1,20 @@
 use operators::Operator;
 use Value;
+use Location;
 use state;
 // --
 use std::char;
 
 enum Error {
-	NoValue{cell: usize},
+	NoValue{cell: Location},
+	PointerCellContainsChar,
 	NoEmployeeValue,
 	SumOfChars,
 	SumOverflow{character: char, number: u32}
 }
 
 pub struct AddOp {
-	pub cell: usize
+	pub cell: Location
 }
 
 impl AddOp {
@@ -35,7 +37,9 @@ impl AddOp {
 
 	fn explain_error(e: Error) -> String {
 		match e {
-			Error::NoValue{cell: _cell} => format!("There is no value at cell {}", _cell),
+			Error::NoValue{cell: Location::Cell(_cell)} => format!("There is no value at cell {:?}", _cell),
+			Error::NoValue{cell: Location::Address(_cell)} => format!("There is no value at cell {:?}", _cell),
+			Error::PointerCellContainsChar => String::from("The selected cell should contain a number, not a char"),
 			Error::NoEmployeeValue => String::from("the Employee register holds no value. Cannot add."),
 			Error::SumOfChars => String::from("cannot sum two characters!"),
 			Error::SumOverflow{character: _char, number: _num} =>
@@ -51,7 +55,22 @@ impl Operator for AddOp {
 	}
 
   fn apply_to(&self,  s: &mut state::InternalState) -> Result<(), String> {
-		let value_from_memory = s.memory[self.cell].clone();
+		let memory_position = match self.cell {
+			Location::Cell(mempos) => Ok(mempos),
+			Location::Address(mempos) => {
+				let value_from_memory = s.memory[mempos].clone();
+				match value_from_memory {
+					Some(Value::Number{value: pointed_cell}) => Ok(pointed_cell as usize),
+					Some(Value::Character{value: _}) => Err(AddOp::explain_error(Error::PointerCellContainsChar)),
+					None => Err(AddOp::explain_error(Error::NoValue{cell: Location::Cell(mempos)}))
+				}
+			}
+		};
+		if let Err(error_message) = memory_position {
+			return Err(error_message);
+		}
+
+		let value_from_memory = s.memory[memory_position.unwrap()].clone();
 		let res = match value_from_memory {
 			Some(ref v) => {
 				match s.register {
@@ -105,6 +124,7 @@ impl Operator for AddOp {
 mod test {
 	use state;
 	use Value;
+	use Location;
 	use Operation;
 	use operators::Operator;
 	use operators::add::AddOp;
@@ -118,7 +138,21 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 4})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: 0};
+		let operation = AddOp{cell: Location::Cell(0)};
+
+		let _ = operation.apply_to(&mut state).unwrap();
+
+		assert!(match state.register {
+			Some(Value::Number{value: 9}) => true,
+			_ => false
+		});
+	}
+
+	#[test]
+	fn add_two_numbers_address() {
+		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 4}));
+		let operation = AddOp{cell: Location::Address(0)};
 
 		let _ = operation.apply_to(&mut state).unwrap();
 
@@ -137,10 +171,31 @@ mod test {
 			memory: vec!(None),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: 0};
+		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(& mut state);
 
+		assert!(result.is_err());
+	}
+
+	#[test]
+	fn add_two_numbers_to_empty_address() {
+		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
+		state.memory = vec!(None, Some(Value::Number{value: 4}));
+		let operation = AddOp{cell: Location::Address(0)};
+
+		let result = operation.apply_to(&mut state);
+		assert!(result.is_err());
+	}
+
+	#[test]
+	fn add_number_to_empty_addressed_cell(){
+		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), None, None, None, None);
+		let operation = AddOp{cell: Location::Address(0)};
+
+		let result = operation.apply_to(&mut state);
+		println!("{:?}", result);
 		assert!(result.is_err());
 	}
 
@@ -153,10 +208,25 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: 0};
+		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
 
+		assert!(result.is_err());
+	}
+
+	#[test]
+	fn add_addressed_number_to_empty_register(){
+		let mut state = state::InternalState {
+			register: None,
+			input_tape: vec!(),
+			output_tape: vec!(),
+			memory: vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5})),
+			instruction_counter: 0
+		};
+		let operation = AddOp{cell: Location::Address(0)};
+
+		let result = operation.apply_to(&mut state);
 		assert!(result.is_err());
 	}
 
@@ -169,7 +239,18 @@ mod test {
 			memory: vec!(Some(Value::Character{value: 'a'})),
 			instruction_counter: 0
 		};
-		let operator = AddOp{cell: 0};
+		let operator = AddOp{cell: Location::Cell(0)};
+
+		let result = operator.apply_to(&mut state);
+
+		assert!(result.is_err());
+	}
+
+	#[test]
+	fn add_char_to_addressed_char(){
+		let mut state = state::InternalState::new(Some(Value::Character{value: 'a'}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Character{value: 'a'}));
+		let operator = AddOp{cell: Location::Address(0)};
 
 		let result = operator.apply_to(&mut state);
 
@@ -186,7 +267,7 @@ mod test {
 			instruction_counter: 0
 		};
 
-		let _ = state.apply(Operation::Add{cell: 0});
+		let _ = state.apply(Operation::Add{cell: Location::Cell(0)});
 
 		assert!(match state.register {
 			Some(Value::Character{value: 'f'}) => true,
@@ -203,7 +284,7 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: 0};
+		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
 
@@ -220,8 +301,20 @@ mod test {
 			instruction_counter: 0
 		};
 
-		let _ = state.apply(Operation::Add{cell: 0}).unwrap();
+		let _ = state.apply(Operation::Add{cell: Location::Cell(0)}).unwrap();
 
+		assert!(match state.register {
+			Some(Value::Character{value: 'f'}) => true,
+			_ => false
+		});
+	}
+
+	#[test]
+	fn add_number_to_addressed_char(){
+		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Character{value: 'a'}));
+
+		let _ = state.apply(Operation::Add{cell: Location::Address(0)}).unwrap();
 		assert!(match state.register {
 			Some(Value::Character{value: 'f'}) => true,
 			_ => false
@@ -237,7 +330,7 @@ mod test {
 			memory: vec!(Some(Value::Character{value: 'z'})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: 0};
+		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
 
