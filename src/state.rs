@@ -48,6 +48,9 @@ impl InternalState {
 			Operation::Add{cell: _cell} => {
 				apply_operation!(self, operators::add::AddOp{cell: _cell})
 			},
+			Operation::Sub{cell: _cell} => {
+				apply_operation!(self, operators::sub::SubOp{cell: _cell})
+			},
 			Operation::Inbox => {
 				apply_operation!(self, operators::inbox::InboxOp{})
 			},

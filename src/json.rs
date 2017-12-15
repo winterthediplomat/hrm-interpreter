@@ -58,6 +58,14 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
         };
         return Operation::Add{cell: cell_to_add};
     }
+    else if json_op.operation == String::from("sub") {
+        let cell_to_sub = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::Sub{cell: cell_to_sub};
+    }
     else if json_op.operation == String::from("copyfrom") {
         let cell = match json_op.operand.unwrap() {
             JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'copyfrom'"),

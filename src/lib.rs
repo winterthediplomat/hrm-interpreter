@@ -20,6 +20,7 @@ pub enum Operation {
 	Inbox,
 	Outbox,
 	Add{cell: Location},
+	Sub{cell: Location},
 	CopyFrom{cell: Location},
 	CopyTo{cell: Location},
 	Label,
