@@ -10,7 +10,7 @@ enum Error {
 	PointerCellContainsChar,
 	NoEmployeeValue,
 	SumOfChars,
-	SumOverflow{character: char, number: u32}
+	SumOverflow{character: char, number: i32}
 }
 
 pub struct AddOp {
@@ -18,20 +18,20 @@ pub struct AddOp {
 }
 
 impl AddOp {
-	fn add_number_and_char(num: u32, c: char) -> Result<char, u32> {
+	fn add_number_and_char(num: i32, c: char) -> Result<char, i32> {
 		const ALPHABET_RADIX: u32 = 36;
-		const SMALL_ASCII_A: u32 = 97;
-		const HEX_A_IN_DEC: u32 = 10;
+		const SMALL_ASCII_A: i32 = 97;
+		const HEX_A_IN_DEC: i32 = 10;
 
-		let c_as_number = c.to_digit(ALPHABET_RADIX).unwrap();
+		let c_as_number = c.to_digit(ALPHABET_RADIX).unwrap() as i32;
 		let new_number = c_as_number + num;
-		let fixed_for_char: u32 = SMALL_ASCII_A + (new_number - HEX_A_IN_DEC);
+		let fixed_for_char: i32 = SMALL_ASCII_A + (new_number - HEX_A_IN_DEC);
 
-		if new_number >= 36 {
+		if new_number < 0 || new_number >= 36 {
 			Err(new_number)
 		}
 		else {
-			Ok(char::from_u32(fixed_for_char).unwrap())
+			Ok(char::from_u32(fixed_for_char as u32).unwrap())
 		}
 	}
 

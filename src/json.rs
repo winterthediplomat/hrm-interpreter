@@ -29,7 +29,7 @@ pub struct JsonOperation {
 #[derive(Deserialize, Clone)]
 #[serde(untagged)]
 enum JsonValue {
-    Number(u32),
+    Number(i32),
     Character(char)
 }
 

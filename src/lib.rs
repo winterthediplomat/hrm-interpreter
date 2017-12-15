@@ -5,7 +5,7 @@ extern crate serde_json;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
-	Number{value: u32},
+	Number{value: i32},
 	Character{value: char}
 }
 
