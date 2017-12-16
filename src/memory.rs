@@ -4,7 +4,7 @@ use state::InternalState;
 
 #[derive(Debug)]
 pub enum Error {
-    PointerCellContainsChar,
+    PointerCellContainsChar(Location, Value),
     NoValue(Location)
 }
 
@@ -15,7 +15,8 @@ pub fn extract_memory_position(cell: Location, s: &InternalState) -> Result<usiz
             let value_from_memory = s.memory[mempos].clone();
             match value_from_memory {
                 Some(Value::Number{value: pointed_cell}) => Ok(pointed_cell as usize),
-                Some(Value::Character{value: _}) => Err(Error::PointerCellContainsChar),
+                Some(Value::Character{value: _}) =>
+                    Err(Error::PointerCellContainsChar(cell, value_from_memory.unwrap())),
                 None => Err(Error::NoValue(Location::Cell(mempos)))
             }
         }
@@ -28,7 +29,7 @@ pub fn explain(error: Error) -> String {
             format!("There is no value at cell {:?}", _cell),
         Error::NoValue(Location::Address(_cell)) =>
             format!("There is no value at cell {:?}", _cell),
-        Error::PointerCellContainsChar =>
-            String::from("The selected cell should contain a number, not a char"),
+        Error::PointerCellContainsChar(cell, value) =>
+            format!("Cell {:?} should contain a number, not a char({:?})", cell, value)
     }
 }
