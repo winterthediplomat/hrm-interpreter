@@ -2,12 +2,12 @@ use operators::Operator;
 use Value;
 use Location;
 use state;
+use memory;
 // --
 use std::char;
 
 enum Error {
 	NoValue{cell: Location},
-	PointerCellContainsChar,
 	NoEmployeeValue,
 	SumOfChars,
 	SumOverflow{character: char, number: u32}
@@ -39,7 +39,6 @@ impl AddOp {
 		match e {
 			Error::NoValue{cell: Location::Cell(_cell)} => format!("There is no value at cell {:?}", _cell),
 			Error::NoValue{cell: Location::Address(_cell)} => format!("There is no value at cell {:?}", _cell),
-			Error::PointerCellContainsChar => String::from("The selected cell should contain a number, not a char"),
 			Error::NoEmployeeValue => String::from("the Employee register holds no value. Cannot add."),
 			Error::SumOfChars => String::from("cannot sum two characters!"),
 			Error::SumOverflow{character: _char, number: _num} =>
@@ -55,19 +54,9 @@ impl Operator for AddOp {
 	}
 
   fn apply_to(&self,  s: &mut state::InternalState) -> Result<(), String> {
-		let memory_position = match self.cell {
-			Location::Cell(mempos) => Ok(mempos),
-			Location::Address(mempos) => {
-				let value_from_memory = s.memory[mempos].clone();
-				match value_from_memory {
-					Some(Value::Number{value: pointed_cell}) => Ok(pointed_cell as usize),
-					Some(Value::Character{value: _}) => Err(AddOp::explain_error(Error::PointerCellContainsChar)),
-					None => Err(AddOp::explain_error(Error::NoValue{cell: Location::Cell(mempos)}))
-				}
-			}
-		};
-		if let Err(error_message) = memory_position {
-			return Err(error_message);
+		let memory_position = memory::extract_memory_position(self.cell, &s);
+		if let Err(error) = memory_position {
+			return Err(memory::explain(error));
 		}
 
 		let value_from_memory = s.memory[memory_position.unwrap()].clone();

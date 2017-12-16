@@ -1,7 +1,7 @@
 use operators::Operator;
 use state::InternalState;
 use Location;
-use Value;
+use memory;
 
 pub struct CopyFromOp {
 	pub cell: Location
@@ -10,19 +10,9 @@ impl Operator for CopyFromOp {
 	fn changes_instruction_counter(&self) -> bool { false }
 
 	fn apply_to(&self, s: &mut InternalState) -> Result<(), String> {
-		let memory_position = match self.cell {
-			Location::Cell(mempos) => Ok(mempos as usize),
-			Location::Address(pointed_cell) => {
-				let pointed_value = s.memory[pointed_cell];
-				match pointed_value {
-					None => Err(format!("pointer cell is empty!")),
-					Some(Value::Number{value: addressed_cell}) => Ok(addressed_cell as usize),
-					Some(Value::Character{value: _}) => Err(format!("pointer cell contains a char"))
-				}
-			}
-		};
-		if let Err(error_reason) = memory_position {
-			return Err(error_reason);
+		let memory_position = memory::extract_memory_position(self.cell, &s);
+		if let Err(error) = memory_position {
+			return Err(memory::explain(error));
 		}
 
 		let cell = memory_position.unwrap();
