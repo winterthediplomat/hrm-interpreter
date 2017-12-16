@@ -1,7 +1,7 @@
 use operators::Operator;
 use state::InternalState;
 use Location;
-use Value;
+use memory;
 
 pub struct CopyToOp {
 	pub cell: Location
@@ -10,16 +10,9 @@ impl Operator for CopyToOp {
 	fn changes_instruction_counter(&self) -> bool { false }
 
 	fn apply_to(&self, s: &mut InternalState) -> Result<(), String> {
-		let memory_position = match self.cell {
-			Location::Cell(mempos) => Ok(mempos),
-			Location::Address(addressed_cell) => match s.memory[addressed_cell] {
-				None => Err(format!("cannot read the value of the addressed cell")),
-				Some(Value::Character{value: _}) => Err(format!("char is not a valid address")),
-				Some(Value::Number{value: mempos}) => Ok(mempos as usize)
-			}
-		};
-		if let Err(error_reason) = memory_position {
-			return Err(error_reason);
+		let memory_position = memory::extract_memory_position(self.cell, &s);
+		if let Err(error) = memory_position {
+			return Err(memory::explain(error));
 		}
 
 		let cell = memory_position.unwrap();
