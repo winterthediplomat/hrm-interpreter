@@ -23,11 +23,11 @@ impl BumpOp {
 }
 
 pub struct BumpPlusOp {
-	cell: Location
+	pub cell: Location
 }
 
 pub struct BumpMinusOp {
-	cell: Location
+	pub cell: Location
 }
 
 impl Operator for BumpPlusOp {
