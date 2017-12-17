@@ -25,7 +25,10 @@ pub enum Operation {
 	CopyTo{cell: Location},
 	Label,
 	Jump{next_operation: usize},
-	JumpEqualsZero{next_operation: usize}
+	JumpEqualsZero{next_operation: usize},
+	JumpNegative{next_operation: usize},
+	BumpPlus{cell: Location},
+	BumpMinus{cell: Location},
 }
 
 pub mod json;
