@@ -48,6 +48,9 @@ impl InternalState {
 			Operation::Add{cell: _cell} => {
 				apply_operation!(self, operators::add::AddOp{cell: _cell})
 			},
+			Operation::Sub{cell: _cell} => {
+				apply_operation!(self, operators::sub::SubOp{cell: _cell})
+			},
 			Operation::Inbox => {
 				apply_operation!(self, operators::inbox::InboxOp{})
 			},
@@ -69,7 +72,15 @@ impl InternalState {
 			Operation::JumpEqualsZero{next_operation: _next_op} => {
 				apply_operation!(self, operators::jump::JumpEqualsZeroOp{next_operation: _next_op})
 			}
-
+			Operation::JumpNegative{next_operation: _next_op} => {
+				apply_operation!(self, operators::jump::JumpNegativeOp{next_operation: _next_op})
+			}
+			Operation::BumpPlus{cell: _cell} => {
+				apply_operation!(self, operators::bump::BumpPlusOp{cell: _cell})
+			}
+			Operation::BumpMinus{cell: _cell} => {
+				apply_operation!(self, operators::bump::BumpMinusOp{cell: _cell})
+			}
 		}
 	}
 }

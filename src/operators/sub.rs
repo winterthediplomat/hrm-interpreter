@@ -2,61 +2,85 @@ use operators::Operator;
 use Value;
 use Location;
 use state;
-use memory;
 // --
 use std::char;
 
 enum Error {
 	NoValue{cell: Location},
+	PointerCellContainsChar,
 	NoEmployeeValue,
-	SumOfChars,
-	SumOverflow{character: char, number: i32}
+	NumLessChar,
+	SubUnderflow{character: char, number: i32},
+	SubUnderflowOfChar{character: char, other_character: char}
 }
 
-pub struct AddOp {
+pub struct SubOp {
 	pub cell: Location
 }
 
-impl AddOp {
-	fn add_number_and_char(num: i32, c: char) -> Result<char, i32> {
+impl SubOp {
+	fn sub_char_and_number(c: char, num: i32) -> Result<char, i32> {
 		const ALPHABET_RADIX: u32 = 36;
 		const SMALL_ASCII_A: i32 = 97;
 		const HEX_A_IN_DEC: i32 = 10;
 
 		let c_as_number = c.to_digit(ALPHABET_RADIX).unwrap() as i32;
-		let new_number = c_as_number + num;
-		let fixed_for_char: i32 = SMALL_ASCII_A + (new_number - HEX_A_IN_DEC);
-
-		if new_number < 0 || new_number >= 36 {
-			Err(new_number)
+		if num < c_as_number {
+			Err(num - c_as_number)
 		}
 		else {
-			Ok(char::from_u32(fixed_for_char as u32).unwrap())
+			let new_number = num - c_as_number;
+			let fixed_for_char: u32 = (SMALL_ASCII_A - (new_number - HEX_A_IN_DEC)) as u32;
+
+			Ok(char::from_u32(fixed_for_char).unwrap())
 		}
+	}
+
+	fn sub_char_and_char(a: char, b: char) -> Result<i32, i32> {
+		const ALPHABET_RADIX: u32 = 36;
+
+		let a_as_number = a.to_digit(ALPHABET_RADIX).unwrap() as i32;
+		let b_as_number = b.to_digit(ALPHABET_RADIX).unwrap() as i32;
+		let new_number = b_as_number - a_as_number;
+		Ok(new_number)
 	}
 
 	fn explain_error(e: Error) -> String {
 		match e {
 			Error::NoValue{cell: Location::Cell(_cell)} => format!("There is no value at cell {:?}", _cell),
 			Error::NoValue{cell: Location::Address(_cell)} => format!("There is no value at cell {:?}", _cell),
+			Error::PointerCellContainsChar => String::from("The selected cell should contain a number, not a char"),
 			Error::NoEmployeeValue => String::from("the Employee register holds no value. Cannot add."),
-			Error::SumOfChars => String::from("cannot sum two characters!"),
-			Error::SumOverflow{character: _char, number: _num} =>
-				format!("value overflowed! {} + {} is not representable as a letter!",
+			Error::NumLessChar => String::from("cannot perform <num> - <char>"),
+			Error::SubUnderflow{character: _char, number: _num} =>
+				format!("value underflowed! {} - {} is not representable as a letter!",
+								_char, _num),
+			Error::SubUnderflowOfChar{character: _char, other_character: _num} =>
+				format!("value underflowed! {} - {} is not representable as a letter!",
 								_char, _num)
 		}
 	}
 }
 
-impl Operator for AddOp {
+impl Operator for SubOp {
   fn changes_instruction_counter(&self) -> bool {
 		false
 	}
 
   fn apply_to(&self,  s: &mut state::InternalState) -> Result<(), String> {
-		let memory_position = memory::extract_memory_position(self.cell, &s);
-		if let Err(error) = memory_position {
-			return Err(memory::explain(error));
+		let memory_position = match self.cell {
+			Location::Cell(mempos) => Ok(mempos),
+			Location::Address(mempos) => {
+				let value_from_memory = s.memory[mempos].clone();
+				match value_from_memory {
+					Some(Value::Number{value: pointed_cell}) => Ok(pointed_cell as usize),
+					Some(Value::Character{value: _}) => Err(SubOp::explain_error(Error::PointerCellContainsChar)),
+					None => Err(SubOp::explain_error(Error::NoValue{cell: Location::Cell(mempos)}))
+				}
+			}
+		};
+		if let Err(error_message) = memory_position {
+			return Err(error_message);
 		}
 
 		let value_from_memory = s.memory[memory_position.unwrap()].clone();
@@ -66,25 +90,26 @@ impl Operator for AddOp {
 					Some(old_register) => {
 						let new_register_value: Result<Value, String> =  match (v, old_register) {
 							(&Value::Number{value: _v}, Value::Number{value: _old}) => {
-								Ok(Value::Number{value: _v + _old})
+								Ok(Value::Number{value: _v - _old})
 							},
-							(&Value::Number{value: _v}, Value::Character{value: _old}) => {
-								if let Ok(new_char) = AddOp::add_number_and_char(_v, _old) {
-									Ok(Value::Character{value: new_char})
+							(&Value::Character{value: _v}, Value::Character{value: _old}) => {
+								if let Ok(new_number) = SubOp::sub_char_and_char(_v, _old) {
+									Ok(Value::Number{value: new_number})
 								}
 								else {
-									Err(AddOp::explain_error(Error::SumOverflow{character: _old, number: _v}))
+									Err(SubOp::explain_error(Error::SubUnderflowOfChar{character: _old, other_character: _v}))
 								}
 							},
 							(&Value::Character{value: _v}, Value::Number{value: _old}) => {
-								if let Ok(new_char) = AddOp::add_number_and_char(_old, _v) {
+								if let Ok(new_char) = SubOp::sub_char_and_number(_v, _old) {
 									Ok(Value::Character{value: new_char})
 								}
 								else {
-									Err(AddOp::explain_error(Error::SumOverflow{character: _v, number: _old}))
+									Err(SubOp::explain_error(Error::SubUnderflow{character: _v, number: _old}))
 								}
 							},
-							_ => Err(AddOp::explain_error(Error::SumOfChars))
+							(&Value::Number{value: _v}, Value::Character{value: _old}) =>
+								Err(SubOp::explain_error(Error::NumLessChar))
 						};
 						
 						match new_register_value {
@@ -96,12 +121,12 @@ impl Operator for AddOp {
 						}
 					}
 					_ => {
-						Err(AddOp::explain_error(Error::NoEmployeeValue))
+						Err(SubOp::explain_error(Error::NoEmployeeValue))
 					}
 				}
 			}
 			_ => {
-				Err(AddOp::explain_error(Error::NoValue{cell: self.cell}))
+				Err(SubOp::explain_error(Error::NoValue{cell: self.cell}))
 			}
 		};
 
@@ -116,10 +141,29 @@ mod test {
 	use Location;
 	use Operation;
 	use operators::Operator;
-	use operators::add::AddOp;
+	use operators::sub::SubOp;
 
 	#[test]
-	fn add_two_numbers(){
+	fn sub_two_numbers(){
+		let mut state = state::InternalState {
+			register: Some(Value::Number{value: 4}),
+			input_tape: vec!(),
+			output_tape: vec!(),
+			memory: vec!(Some(Value::Number{value: 5})),
+			instruction_counter: 0
+		};
+		let operation = SubOp{cell: Location::Cell(0)};
+
+		let _ = operation.apply_to(&mut state).unwrap();
+
+		assert!(match state.register {
+			Some(Value::Number{value: 1}) => true,
+			_ => false
+		});
+	}
+
+	#[test]
+	fn sub_two_numbers_negative_result(){
 		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
@@ -127,32 +171,46 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 4})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: Location::Cell(0)};
+		let operation = SubOp{cell: Location::Cell(0)};
 
 		let _ = operation.apply_to(&mut state).unwrap();
 
 		assert!(match state.register {
-			Some(Value::Number{value: 9}) => true,
+			Some(Value::Number{value: -1}) => true,
 			_ => false
 		});
 	}
 
 	#[test]
-	fn add_two_numbers_address() {
+	fn sub_two_numbers_address() {
+		let mut state = state::InternalState::new(Some(Value::Number{value: 4}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5}));
+		let operation = SubOp{cell: Location::Address(0)};
+
+		let _ = operation.apply_to(&mut state).unwrap();
+
+		assert!(match state.register {
+			Some(Value::Number{value: 1}) => true,
+			_ => false
+		});
+	}
+
+	#[test]
+	fn sub_two_numbers_address_negative_result() {
 		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
 		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 4}));
-		let operation = AddOp{cell: Location::Address(0)};
+		let operation = SubOp{cell: Location::Address(0)};
 
 		let _ = operation.apply_to(&mut state).unwrap();
 
 		assert!(match state.register {
-			Some(Value::Number{value: 9}) => true,
+			Some(Value::Number{value: -1}) => true,
 			_ => false
 		});
 	}
 
 	#[test]
-	fn add_number_to_empty_cell(){
+	fn sub_number_to_empty_cell(){
 		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
@@ -160,7 +218,7 @@ mod test {
 			memory: vec!(None),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: Location::Cell(0)};
+		let operation = SubOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(& mut state);
 
@@ -168,28 +226,27 @@ mod test {
 	}
 
 	#[test]
-	fn add_two_numbers_to_empty_address() {
+	fn sub_two_numbers_to_empty_address() {
 		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
 		state.memory = vec!(None, Some(Value::Number{value: 4}));
-		let operation = AddOp{cell: Location::Address(0)};
+		let operation = SubOp{cell: Location::Address(0)};
 
 		let result = operation.apply_to(&mut state);
 		assert!(result.is_err());
 	}
 
 	#[test]
-	fn add_number_to_empty_addressed_cell(){
+	fn sub_number_to_empty_addressed_cell(){
 		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
 		state.memory = vec!(Some(Value::Number{value: 1}), None, None, None, None);
-		let operation = AddOp{cell: Location::Address(0)};
+		let operation = SubOp{cell: Location::Address(0)};
 
 		let result = operation.apply_to(&mut state);
-		println!("{:?}", result);
 		assert!(result.is_err());
 	}
 
 	#[test]
-	fn add_number_to_empty_register(){
+	fn sub_number_to_empty_register(){
 		let mut state = state::InternalState {
 			register: None,
 			input_tape: vec!(),
@@ -197,7 +254,7 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: Location::Cell(0)};
+		let operation = SubOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
 
@@ -205,7 +262,7 @@ mod test {
 	}
 
 	#[test]
-	fn add_addressed_number_to_empty_register(){
+	fn sub_addressed_number_to_empty_register(){
 		let mut state = state::InternalState {
 			register: None,
 			input_tape: vec!(),
@@ -213,14 +270,14 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: Location::Address(0)};
+		let operation = SubOp{cell: Location::Address(0)};
 
 		let result = operation.apply_to(&mut state);
 		assert!(result.is_err());
 	}
 
 	#[test]
-	fn add_char_to_char(){
+	fn sub_char_to_char(){
 		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'a'}),
 			input_tape: vec!(),
@@ -228,26 +285,34 @@ mod test {
 			memory: vec!(Some(Value::Character{value: 'a'})),
 			instruction_counter: 0
 		};
-		let operator = AddOp{cell: Location::Cell(0)};
+		let operator = SubOp{cell: Location::Cell(0)};
 
 		let result = operator.apply_to(&mut state);
 
-		assert!(result.is_err());
+		assert!(result.is_ok());
+		assert!(match state.register {
+			Some(Value::Number{value: 0}) => true,
+			_ => false
+		});
 	}
 
 	#[test]
-	fn add_char_to_addressed_char(){
+	fn sub_char_to_addressed_char(){
 		let mut state = state::InternalState::new(Some(Value::Character{value: 'a'}), 0);
 		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Character{value: 'a'}));
-		let operator = AddOp{cell: Location::Address(0)};
+		let operator = SubOp{cell: Location::Address(0)};
 
 		let result = operator.apply_to(&mut state);
 
-		assert!(result.is_err());
+		assert!(result.is_ok());
+		assert!(match state.register {
+			Some(Value::Number{value: 0}) => true,
+			_ => false
+		});
 	}
 
 	#[test]
-	fn add_char_to_number(){
+	fn sub_char_to_number(){
 		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'a'}),
 			input_tape: vec!(),
@@ -256,16 +321,13 @@ mod test {
 			instruction_counter: 0
 		};
 
-		let _ = state.apply(Operation::Add{cell: Location::Cell(0)});
+		let result = state.apply(Operation::Sub{cell: Location::Cell(0)});
 
-		assert!(match state.register {
-			Some(Value::Character{value: 'f'}) => true,
-			_ => false
-		});
+		assert!(result.is_err());
 	}
 
 	#[test]
-	fn add_char_to_number_overflow(){
+	fn sub_char_to_number_overflow(){
 		let mut state = state::InternalState {
 			register: Some(Value::Character{value: 'z'}),
 			input_tape: vec!(),
@@ -273,7 +335,7 @@ mod test {
 			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: Location::Cell(0)};
+		let operation = SubOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
 
@@ -281,7 +343,7 @@ mod test {
 	}
 
 	#[test]
-	fn add_number_to_char(){
+	fn sub_number_to_char(){
 		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
@@ -290,28 +352,22 @@ mod test {
 			instruction_counter: 0
 		};
 
-		let _ = state.apply(Operation::Add{cell: Location::Cell(0)}).unwrap();
+		let result = state.apply(Operation::Sub{cell: Location::Cell(0)});
 
-		assert!(match state.register {
-			Some(Value::Character{value: 'f'}) => true,
-			_ => false
-		});
+		assert!(result.is_err());
 	}
 
 	#[test]
-	fn add_number_to_addressed_char(){
+	fn sub_number_to_addressed_char(){
 		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
 		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Character{value: 'a'}));
 
-		let _ = state.apply(Operation::Add{cell: Location::Address(0)}).unwrap();
-		assert!(match state.register {
-			Some(Value::Character{value: 'f'}) => true,
-			_ => false
-		});
+		let result = state.apply(Operation::Sub{cell: Location::Address(0)});
+		assert!(result.is_err());
 	}
 
 	#[test]
-	fn add_number_to_char_overflow(){
+	fn sub_number_to_char_overflow(){
 		let mut state = state::InternalState {
 			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
@@ -319,7 +375,7 @@ mod test {
 			memory: vec!(Some(Value::Character{value: 'z'})),
 			instruction_counter: 0
 		};
-		let operation = AddOp{cell: Location::Cell(0)};
+		let operation = SubOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
 

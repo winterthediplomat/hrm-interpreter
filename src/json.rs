@@ -29,7 +29,7 @@ pub struct JsonOperation {
 #[derive(Deserialize, Clone)]
 #[serde(untagged)]
 enum JsonValue {
-    Number(u32),
+    Number(i32),
     Character(char)
 }
 
@@ -58,6 +58,14 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
         };
         return Operation::Add{cell: cell_to_add};
     }
+    else if json_op.operation == String::from("sub") {
+        let cell_to_sub = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'sub'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::Sub{cell: cell_to_sub};
+    }
     else if json_op.operation == String::from("copyfrom") {
         let cell = match json_op.operand.unwrap() {
             JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'copyfrom'"),
@@ -74,6 +82,22 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
         };
         return Operation::CopyTo{cell: cell};
     }
+    else if json_op.operation == String::from("bump+") {
+        let cell = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'bump+'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::BumpPlus{cell: cell};
+    }
+    else if json_op.operation == String::from("bump-") {
+        let cell = match json_op.operand.unwrap() {
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'bump-'"),
+            JsonOperand::Address(cell) => Location::Address(cell as usize),
+            JsonOperand::Cell(cell) => Location::Cell(cell as usize)
+        };
+        return Operation::BumpMinus{cell: cell};
+    }
     else if json_op.operation == String::from("label") {
         return Operation::Label{};
     }
@@ -86,13 +110,22 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
             panic!("only Labels are valid operands for jmp");
         }
     }
+    else if json_op.operation == String::from("jneg") {
+        if let JsonOperand::Label(label_name) = json_op.operand.unwrap() {
+            let next_position = position_from_label(&label_name, &labels_mapping).unwrap();
+            return Operation::JumpNegative{next_operation: next_position};
+        }
+        else {
+            panic!("only Labels are valid operands for jneg");
+        }
+    }
     else if json_op.operation == String::from("jez") {
         if let JsonOperand::Label(label_name) = json_op.operand.unwrap() {
             let next_position = position_from_label(&label_name, &labels_mapping).unwrap();
             return Operation::JumpEqualsZero{next_operation: next_position};
         }
         else {
-            panic!("only Labels are valid operands for jmp");
+            panic!("only Labels are valid operands for jez");
         }
     }
     else if json_op.operation == String::from("outbox") { return Operation::Outbox{}; }

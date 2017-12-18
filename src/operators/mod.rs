@@ -9,8 +9,10 @@ pub trait Operator {
 }
 
 pub mod add;
+pub mod sub;
 pub mod inbox;
 pub mod outbox;
 pub mod copyfrom;
 pub mod copyto;
 pub mod jump;
+pub mod bump;

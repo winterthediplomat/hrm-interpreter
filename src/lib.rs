@@ -5,7 +5,7 @@ extern crate serde_json;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Value {
-	Number{value: u32},
+	Number{value: i32},
 	Character{value: char}
 }
 
@@ -20,11 +20,15 @@ pub enum Operation {
 	Inbox,
 	Outbox,
 	Add{cell: Location},
+	Sub{cell: Location},
 	CopyFrom{cell: Location},
 	CopyTo{cell: Location},
 	Label,
 	Jump{next_operation: usize},
-	JumpEqualsZero{next_operation: usize}
+	JumpEqualsZero{next_operation: usize},
+	JumpNegative{next_operation: usize},
+	BumpPlus{cell: Location},
+	BumpMinus{cell: Location},
 }
 
 pub mod json;
