@@ -60,7 +60,7 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
     }
     else if json_op.operation == String::from("sub") {
         let cell_to_sub = match json_op.operand.unwrap() {
-            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'add'"),
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'sub'"),
             JsonOperand::Address(cell) => Location::Address(cell as usize),
             JsonOperand::Cell(cell) => Location::Cell(cell as usize)
         };
@@ -84,7 +84,7 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
     }
     else if json_op.operation == String::from("bump+") {
         let cell = match json_op.operand.unwrap() {
-            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'copyto'"),
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'bump+'"),
             JsonOperand::Address(cell) => Location::Address(cell as usize),
             JsonOperand::Cell(cell) => Location::Cell(cell as usize)
         };
@@ -92,7 +92,7 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
     }
     else if json_op.operation == String::from("bump-") {
         let cell = match json_op.operand.unwrap() {
-            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'copyto'"),
+            JsonOperand::Label(_) => panic!("only Address or Cell are valid operand for 'bump-'"),
             JsonOperand::Address(cell) => Location::Address(cell as usize),
             JsonOperand::Cell(cell) => Location::Cell(cell as usize)
         };
