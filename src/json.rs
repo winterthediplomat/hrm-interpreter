@@ -201,6 +201,10 @@ pub fn read_config(path: String) -> InternalState  {
     };
 }
 
+pub fn dump_state(internal_state: &InternalState) -> String {
+    serde_json::to_string(&internal_state).unwrap()
+}
+
 #[cfg(test)]
 mod test {
     use Operation;
