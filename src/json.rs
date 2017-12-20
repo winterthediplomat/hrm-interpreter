@@ -135,14 +135,12 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
 fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)> {
     let mut labels : Vec<(String, usize)> = vec!();
 
-    let mut index = 0;
-    for operation in source_code {
+    for (index, operation) in source_code.iter().enumerate() {
         if operation.operation == String::from("label") {
             if let JsonOperand::Label(label_name) = operation.clone().operand.unwrap() {
                 labels.push((label_name, index));
             }
         }
-        index += 1;
     }
 
    return labels;
