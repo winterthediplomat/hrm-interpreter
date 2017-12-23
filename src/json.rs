@@ -201,8 +201,11 @@ pub fn read_config(path: String) -> InternalState  {
     };
 }
 
-pub fn dump_state(internal_state: &InternalState) -> String {
-    serde_json::to_string(&internal_state).unwrap()
+pub fn dump_state(internal_state: &InternalState) {
+    let raw_state = serde_json::to_string(&internal_state).unwrap();
+
+    let mut file = File::create("state_dump.json").unwrap();
+    file.write_all(raw_state.as_bytes());
 }
 
 #[cfg(test)]

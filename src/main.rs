@@ -1,7 +1,7 @@
 extern crate clap;
 
 extern crate hrm_interpreter;
-use hrm_interpreter::json::{read_file, read_config};
+use hrm_interpreter::json::{read_file, read_config, dump_state};
 use hrm_interpreter::CodeIterator;
 use clap::{Arg, App};
 
@@ -50,4 +50,6 @@ fn main() {
 		else {
 			println!("{:?}", internal_state);
 		}
+
+		dump_state(&internal_state);
 }
