@@ -201,10 +201,23 @@ pub fn read_config(path: String) -> InternalState  {
     };
 }
 
-pub fn dump_state(internal_state: &InternalState) {
-    let raw_state = serde_json::to_string(&internal_state).unwrap();
+#[derive(Serialize)]
+struct StateDump {
+    internal_state: InternalState,
+    ended_with_error: bool,
+    error_reason: String
+}
 
-    let mut file = File::create("state_dump.json").unwrap();
+pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: String) {
+    let state_dump = StateDump {
+        internal_state: internal_state.clone(),
+        ended_with_error: !error_reason.is_empty(),
+        error_reason: error_reason
+    };
+
+    let raw_state = serde_json::to_string(&state_dump).unwrap();
+
+    let mut file = File::create(srcpath.to_owned() + "_state_dump.json").unwrap();
     file.write_all(raw_state.as_bytes());
 }
 
