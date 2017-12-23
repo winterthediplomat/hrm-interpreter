@@ -2,8 +2,9 @@ use Value;
 use Operation;
 use operators;
 use operators::Operator;
+use serde_json;
 
-#[derive(Debug, Clone)]
+#[derive(Serialize, Debug, Clone)]
 pub struct InternalState {
   pub register: Option<Value>,
 	pub input_tape: Vec<Value>,

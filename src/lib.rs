@@ -3,7 +3,7 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub enum Value {
 	Number{value: i32},
 	Character{value: char}

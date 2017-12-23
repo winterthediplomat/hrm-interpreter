@@ -135,14 +135,12 @@ fn to_operator(json_op: JsonOperation, labels_mapping: &Vec<(String, usize)>) ->
 fn labels_to_positions(source_code: &Vec<JsonOperation>) -> Vec<(String, usize)> {
     let mut labels : Vec<(String, usize)> = vec!();
 
-    let mut index = 0;
-    for operation in source_code {
+    for (index, operation) in source_code.iter().enumerate() {
         if operation.operation == String::from("label") {
             if let JsonOperand::Label(label_name) = operation.clone().operand.unwrap() {
                 labels.push((label_name, index));
             }
         }
-        index += 1;
     }
 
    return labels;
@@ -201,6 +199,26 @@ pub fn read_config(path: String) -> InternalState  {
             None => None
         }).collect()
     };
+}
+
+#[derive(Serialize)]
+struct StateDump {
+    internal_state: InternalState,
+    ended_with_error: bool,
+    error_reason: String
+}
+
+pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: String) {
+    let state_dump = StateDump {
+        internal_state: internal_state.clone(),
+        ended_with_error: !error_reason.is_empty(),
+        error_reason: error_reason
+    };
+
+    let raw_state = serde_json::to_string(&state_dump).unwrap();
+
+    let mut file = File::create(srcpath.to_owned() + "_state_dump.json").unwrap();
+    file.write_all(raw_state.as_bytes());
 }
 
 #[cfg(test)]
