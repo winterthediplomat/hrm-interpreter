@@ -90,7 +90,7 @@ impl Operator for SubOp {
 					Some(old_register) => {
 						let new_register_value: Result<Value, String> =  match (v, old_register) {
 							(&Value::Number{value: _v}, Value::Number{value: _old}) => {
-								Ok(Value::Number{value: _v - _old})
+								Ok(Value::Number{value: _old - _v})
 							},
 							(&Value::Character{value: _v}, Value::Character{value: _old}) => {
 								if let Ok(new_number) = SubOp::sub_char_and_char(_v, _old) {
@@ -146,10 +146,10 @@ mod test {
 	#[test]
 	fn sub_two_numbers(){
 		let mut state = state::InternalState {
-			register: Some(Value::Number{value: 4}),
+			register: Some(Value::Number{value: 5}),
 			input_tape: vec!(),
 			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 5})),
+			memory: vec!(Some(Value::Number{value: 4})),
 			instruction_counter: 0
 		};
 		let operation = SubOp{cell: Location::Cell(0)};
@@ -165,10 +165,10 @@ mod test {
 	#[test]
 	fn sub_two_numbers_negative_result(){
 		let mut state = state::InternalState {
-			register: Some(Value::Number{value: 5}),
+			register: Some(Value::Number{value: 4}),
 			input_tape: vec!(),
 			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 4})),
+			memory: vec!(Some(Value::Number{value: 5})),
 			instruction_counter: 0
 		};
 		let operation = SubOp{cell: Location::Cell(0)};
@@ -183,8 +183,8 @@ mod test {
 
 	#[test]
 	fn sub_two_numbers_address() {
-		let mut state = state::InternalState::new(Some(Value::Number{value: 4}), 0);
-		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5}));
+		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 4}));
 		let operation = SubOp{cell: Location::Address(0)};
 
 		let _ = operation.apply_to(&mut state).unwrap();
@@ -197,8 +197,8 @@ mod test {
 
 	#[test]
 	fn sub_two_numbers_address_negative_result() {
-		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0);
-		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 4}));
+		let mut state = state::InternalState::new(Some(Value::Number{value: 4}), 0);
+		state.memory = vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5}));
 		let operation = SubOp{cell: Location::Address(0)};
 
 		let _ = operation.apply_to(&mut state).unwrap();
@@ -292,6 +292,26 @@ mod test {
 		assert!(result.is_ok());
 		assert!(match state.register {
 			Some(Value::Number{value: 0}) => true,
+			_ => false
+		});
+	}
+
+	#[test]
+	fn sub_char_to_char_negative(){
+		let mut state = state::InternalState {
+			register: Some(Value::Character{value: 'a'}),
+			input_tape: vec!(),
+			output_tape: vec!(),
+			memory: vec!(Some(Value::Character{value: 'b'})),
+			instruction_counter: 0
+		};
+		let operator = SubOp{cell: Location::Cell(0)};
+
+		let result = operator.apply_to(&mut state);
+
+		assert!(result.is_ok());
+		assert!(match state.register {
+			Some(Value::Number{value: -1}) => true,
 			_ => false
 		});
 	}
