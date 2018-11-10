@@ -120,13 +120,8 @@ mod test {
 
 	#[test]
 	fn add_two_numbers(){
-		let mut state = state::InternalState {
-			register: Some(Value::Number{value: 5}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 4})),
-			instruction_counter: 0
-		};
+	let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0)
+			.with_memory(vec!(Some(Value::Number{value: 4})));
 		let operation = AddOp{cell: Location::Cell(0)};
 
 		let _ = operation.apply_to(&mut state).unwrap();
@@ -153,13 +148,9 @@ mod test {
 
 	#[test]
 	fn add_number_to_empty_cell(){
-		let mut state = state::InternalState {
-			register: Some(Value::Number{value: 5}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(None),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState
+		::new(Some(Value::Number{value: 5}), 0)
+			.with_memory(vec!(None));
 		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(& mut state);
@@ -190,13 +181,9 @@ mod test {
 
 	#[test]
 	fn add_number_to_empty_register(){
-		let mut state = state::InternalState {
-			register: None,
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 5})),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState
+		::new(None, 0)
+			.with_memory(vec!(Some(Value::Number{value: 5})));
 		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
@@ -206,13 +193,9 @@ mod test {
 
 	#[test]
 	fn add_addressed_number_to_empty_register(){
-		let mut state = state::InternalState {
-			register: None,
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5})),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState
+		::new(None, 0)
+			.with_memory(vec!(Some(Value::Number{value: 1}), Some(Value::Number{value: 5})));
 		let operation = AddOp{cell: Location::Address(0)};
 
 		let result = operation.apply_to(&mut state);
@@ -221,13 +204,9 @@ mod test {
 
 	#[test]
 	fn add_char_to_char(){
-		let mut state = state::InternalState {
-			register: Some(Value::Character{value: 'a'}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Character{value: 'a'})),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState
+		::new(Some(Value::Character{value: 'a'}), 0)
+			.with_memory(vec!(Some(Value::Character{value: 'a'})));
 		let operator = AddOp{cell: Location::Cell(0)};
 
 		let result = operator.apply_to(&mut state);
@@ -248,14 +227,9 @@ mod test {
 
 	#[test]
 	fn add_char_to_number(){
-		let mut state = state::InternalState {
-			register: Some(Value::Character{value: 'a'}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 5})),
-			instruction_counter: 0
-		};
-
+		let mut state = state::InternalState
+		::new(Some(Value::Character{value:'a'}), 0)
+			.with_memory(vec!(Some(Value::Number{value: 5})));
 		let _ = state.apply(Operation::Add{cell: Location::Cell(0)});
 
 		assert!(match state.register {
@@ -266,13 +240,9 @@ mod test {
 
 	#[test]
 	fn add_char_to_number_overflow(){
-		let mut state = state::InternalState {
-			register: Some(Value::Character{value: 'z'}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Number{value: 5})),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState
+		::new(Some(Value::Character{value:'z'}), 0)
+			.with_memory(vec!(Some(Value::Number{value: 5})));
 		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
@@ -282,13 +252,9 @@ mod test {
 
 	#[test]
 	fn add_number_to_char(){
-		let mut state = state::InternalState {
-			register: Some(Value::Number{value: 5}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Character{value: 'a'})),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState::new(Some(Value::Number{value:5}), 0)
+			.with_memory(vec!(Some(Value::Character{value: 'a'})));
+		let operation = AddOp{cell: Location::Cell(0)};
 
 		let _ = state.apply(Operation::Add{cell: Location::Cell(0)}).unwrap();
 
@@ -312,13 +278,8 @@ mod test {
 
 	#[test]
 	fn add_number_to_char_overflow(){
-		let mut state = state::InternalState {
-			register: Some(Value::Number{value: 5}),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			memory: vec!(Some(Value::Character{value: 'z'})),
-			instruction_counter: 0
-		};
+		let mut state = state::InternalState::new(Some(Value::Number{value: 5}), 0)
+			.with_memory(vec!(Some(Value::Character{value: 'z'})));
 		let operation = AddOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);

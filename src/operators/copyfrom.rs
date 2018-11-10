@@ -36,13 +36,8 @@ mod test {
 
 	#[test]
 	fn copyfrom_non_empty_cell(){
-		let mut state = InternalState{
-			register: None,
-			memory: vec!(Some(Value::Number{value: 5})),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			instruction_counter: 0
-		};
+		let mut state = InternalState::new(None, 0)
+			.with_memory(vec!(Some(Value::Number{value: 5})));
 		let operation = CopyFromOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
@@ -70,13 +65,8 @@ mod test {
 
 	#[test]
 	fn copyfrom_empty_cell() {
-		let mut state = InternalState{
-			register: None,
-			memory: vec!(None),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			instruction_counter: 0
-		};
+		let mut state = InternalState::new(None, 0)
+			.with_memory(vec!(None));
 		let operation = CopyFromOp{cell: Location::Cell(0)};
 
 		let result = operation.apply_to(&mut state);
@@ -100,13 +90,8 @@ mod test {
 	#[test]
 	#[should_panic]
 	fn copyfrom_non_existent_cell() {
-		let mut state = InternalState{
-			register: None,
-			memory: vec!(None),
-			input_tape: vec!(),
-			output_tape: vec!(),
-			instruction_counter: 0
-		};
+		let mut state = InternalState::new(None, 0)
+			.with_memory(vec!(None));
 		let operation = CopyFromOp{cell: Location::Cell(9)};
 
 		// #[should_panic]

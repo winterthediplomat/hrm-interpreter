@@ -185,20 +185,17 @@ pub fn read_config(path: String) -> InternalState  {
     }
 
     let input_config: Config = serde_json::from_str(&contents).unwrap();
-    return InternalState{
-        register: None,
-        input_tape: input_config.input_tape.into_iter().map(|input| match input {
+    return InternalState::new(None, 0)
+        .with_input_tape(input_config.input_tape.into_iter().map(|input| match input {
             JsonValue::Number(num_) => Value::Number{value: num_},
             JsonValue::Character(char_) => Value::Character{value: char_}
-        }).collect(),
-        output_tape: vec!(),
-        instruction_counter: 0,
-        memory: input_config.memory.into_iter().map(|memory_value| match memory_value {
+        }).collect())
+        .with_memory(input_config.memory.into_iter().map(|memory_value| match memory_value {
             Some(JsonValue::Number(num_)) => Some(Value::Number{value: num_}),
             Some(JsonValue::Character(char_)) => Some(Value::Character{value: char_}),
             None => None
-        }).collect()
-    };
+        }).collect())
+        .clone();
 }
 
 #[derive(Serialize)]

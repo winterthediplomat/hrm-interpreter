@@ -59,6 +59,12 @@ impl<'a> Iterator for CodeIterator<'a> {
 		if self.has_errored {
 			None
 		}
+		else if self.state.executed_instructions() > 10000 {
+			self.has_errored = true;
+			let result: Result<(), String> = Err(String::from("instructions limit reached"));
+			dump_state(&self.state, srcpath, &result.err().unwrap());
+			return None;
+		}
 		else if self.state.instruction_counter < self.operations.len() {
 			let _operation = self.operations[self.state.instruction_counter];
 
