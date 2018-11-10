@@ -6,7 +6,7 @@ use Operation;
 use Value;
 use Location;
 use state::InternalState;
-
+use std::fs::OpenOptions;
 
 // JSON data format for json-ified source code
 #[derive(Debug, Deserialize, Clone)]
@@ -216,7 +216,19 @@ pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: &
     };
 
     let raw_state = serde_json::to_string(&state_dump).unwrap();
-    println!("{}", raw_state);
+
+    let result = OpenOptions::new()
+        .append(true).create(true).truncate(false)
+        .open(srcpath);
+    if result.is_ok() {
+        let mut file = result.unwrap();
+        file.write(raw_state.as_bytes());
+        // hrm-proxy expects a single line for each execution state --> add line separator
+        file.write(b"\n");
+    }
+    else {
+        panic!("cannot write the file?!?!?! {:?}", result.err());
+    }
 }
 
 #[cfg(test)]

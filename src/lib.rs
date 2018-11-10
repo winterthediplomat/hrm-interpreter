@@ -41,12 +41,13 @@ pub mod state;
 pub struct CodeIterator<'a> {
 	pub state: &'a mut state::InternalState,
 	pub operations: Vec<Operation>,
-	has_errored: bool
+	has_errored: bool,
+	dump_file_path: &'a str
 }
 
 impl<'a> CodeIterator<'a> {
-	pub fn new(_state: &'a mut state::InternalState, _operations: Vec<Operation>) -> Self {
-		CodeIterator{state: _state, operations: _operations, has_errored: false}
+	pub fn new(_state: &'a mut state::InternalState, _operations: Vec<Operation>, dump_file_path: &'a str) -> Self {
+		CodeIterator{state: _state, operations: _operations, has_errored: false, dump_file_path}
 	}
 }
 
@@ -54,6 +55,7 @@ impl<'a> Iterator for CodeIterator<'a> {
 	type Item = Result<state::InternalState, String>;
 
 	fn next(&mut self) -> Option<Self::Item> {
+		let srcpath = self.dump_file_path;
 		if self.has_errored {
 			None
 		}
@@ -65,20 +67,20 @@ impl<'a> Iterator for CodeIterator<'a> {
 			if result.is_err() {
 				if let Operation::Inbox =  _operation {
 					self.has_errored = false;
-					dump_state(&self.state, "", &result.err().unwrap());
+					dump_state(&self.state, srcpath, &result.err().unwrap());
 					return None;
 				}
 				else {
-					dump_state(&self.state, "", &result.err().unwrap());
+					dump_state(&self.state, srcpath, &result.err().unwrap());
 					self.has_errored = true;
 				}
 			}
-			dump_state(&self.state, "", &String::new());
+			dump_state(&self.state, srcpath, &String::new());
 
 			Some(Ok(self.state.clone()))
 		}
 		else {
-			dump_state(&self.state, "", &String::new());
+			dump_state(&self.state, srcpath, &String::new());
 			None
 		}
 	}
