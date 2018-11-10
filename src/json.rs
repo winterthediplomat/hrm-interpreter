@@ -208,17 +208,15 @@ struct StateDump {
     error_reason: String
 }
 
-pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: String) {
+pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: &String) {
     let state_dump = StateDump {
         internal_state: internal_state.clone(),
         ended_with_error: !error_reason.is_empty(),
-        error_reason: error_reason
+        error_reason: error_reason.to_string()
     };
 
     let raw_state = serde_json::to_string(&state_dump).unwrap();
-
-    let mut file = File::create(srcpath.to_owned() + "_state_dump.json").unwrap();
-    file.write_all(raw_state.as_bytes());
+    println!("{}", raw_state);
 }
 
 #[cfg(test)]

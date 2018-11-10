@@ -48,8 +48,6 @@ fn main() {
         println!("{:?}", internal_state);
     }
     else {
-        println!("{:?}", internal_state);
     }
 
-    dump_state(&internal_state, srcpath, reason);
 }

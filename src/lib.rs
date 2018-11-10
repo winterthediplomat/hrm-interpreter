@@ -3,6 +3,8 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+use json::dump_state;
+
 #[derive(Serialize, Debug, Clone, Copy)]
 pub enum Value {
 	Number{value: i32},
@@ -49,7 +51,7 @@ impl<'a> CodeIterator<'a> {
 }
 
 impl<'a> Iterator for CodeIterator<'a> {
-	type Item = Result<(), String>;
+	type Item = Result<state::InternalState, String>;
 
 	fn next(&mut self) -> Option<Self::Item> {
 		if self.has_errored {
@@ -57,23 +59,26 @@ impl<'a> Iterator for CodeIterator<'a> {
 		}
 		else if self.state.instruction_counter < self.operations.len() {
 			let _operation = self.operations[self.state.instruction_counter];
-			println!("applying operation {:?}", _operation);
 
 			let result = self.state.apply(_operation);
 
 			if result.is_err() {
 				if let Operation::Inbox =  _operation {
 					self.has_errored = false;
+					dump_state(&self.state, "", &result.err().unwrap());
 					return None;
 				}
 				else {
+					dump_state(&self.state, "", &result.err().unwrap());
 					self.has_errored = true;
 				}
 			}
+			dump_state(&self.state, "", &String::new());
 
-			Some(result)
+			Some(Ok(self.state.clone()))
 		}
 		else {
+			dump_state(&self.state, "", &String::new());
 			None
 		}
 	}
