@@ -3,6 +3,8 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 
+use json::dump_state;
+
 #[derive(Serialize, Debug, Clone, Copy)]
 pub enum Value {
 	Number{value: i32},
@@ -39,41 +41,52 @@ pub mod state;
 pub struct CodeIterator<'a> {
 	pub state: &'a mut state::InternalState,
 	pub operations: Vec<Operation>,
-	has_errored: bool
+	has_errored: bool,
+	dump_file_path: &'a str
 }
 
 impl<'a> CodeIterator<'a> {
-	pub fn new(_state: &'a mut state::InternalState, _operations: Vec<Operation>) -> Self {
-		CodeIterator{state: _state, operations: _operations, has_errored: false}
+	pub fn new(_state: &'a mut state::InternalState, _operations: Vec<Operation>, dump_file_path: &'a str) -> Self {
+		CodeIterator{state: _state, operations: _operations, has_errored: false, dump_file_path}
 	}
 }
 
 impl<'a> Iterator for CodeIterator<'a> {
-	type Item = Result<(), String>;
+	type Item = Result<state::InternalState, String>;
 
 	fn next(&mut self) -> Option<Self::Item> {
+		let srcpath = self.dump_file_path;
 		if self.has_errored {
 			None
 		}
+		else if self.state.executed_instructions() > 10000 {
+			self.has_errored = true;
+			let result: Result<(), String> = Err(String::from("instructions limit reached"));
+			dump_state(&self.state, srcpath, &result.err().unwrap());
+			return None;
+		}
 		else if self.state.instruction_counter < self.operations.len() {
 			let _operation = self.operations[self.state.instruction_counter];
-			println!("applying operation {:?}", _operation);
 
 			let result = self.state.apply(_operation);
 
 			if result.is_err() {
 				if let Operation::Inbox =  _operation {
 					self.has_errored = false;
+					dump_state(&self.state, srcpath, &result.err().unwrap());
 					return None;
 				}
 				else {
+					dump_state(&self.state, srcpath, &result.err().unwrap());
 					self.has_errored = true;
 				}
 			}
+			dump_state(&self.state, srcpath, &String::new());
 
-			Some(result)
+			Some(Ok(self.state.clone()))
 		}
 		else {
+			dump_state(&self.state, srcpath, &String::new());
 			None
 		}
 	}

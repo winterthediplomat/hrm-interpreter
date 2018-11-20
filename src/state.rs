@@ -2,7 +2,6 @@ use Value;
 use Operation;
 use operators;
 use operators::Operator;
-use serde_json;
 
 #[derive(Serialize, Debug, Clone)]
 pub struct InternalState {
@@ -10,7 +9,8 @@ pub struct InternalState {
 	pub input_tape: Vec<Value>,
 	pub output_tape: Vec<Value>,
 	pub memory: Vec<Option<Value>>,
-	pub instruction_counter: usize
+	pub instruction_counter: usize,
+	_executed_instructions: u32
 }
 
 
@@ -22,7 +22,7 @@ macro_rules! apply_operation {
 				if !op.changes_instruction_counter() {
 					$self.instruction_counter += 1;
 				}
-
+				$self.increase_executed_instructions();
 				Ok(())
 			},
 			Err(reason) => {
@@ -33,16 +33,34 @@ macro_rules! apply_operation {
 }
 
 impl InternalState {
-
-    pub fn new(register: Option<Value>, counter: usize) -> InternalState {
-        InternalState {
-	    register: register,
-	    input_tape: vec!(),
-	    output_tape: vec!(),
-	    memory: vec!(),
-	    instruction_counter: counter
+	pub fn new(register: Option<Value>, counter: usize) -> InternalState {
+		InternalState {
+			register,
+			input_tape: vec!(),
+			output_tape: vec!(),
+			memory: vec!(),
+			instruction_counter: counter,
+			_executed_instructions: 0
+		}
 	}
-    }
+
+	pub fn with_input_tape(mut self, new_input_tape: Vec<Value>) -> Self {
+		self.input_tape = new_input_tape;
+		self
+	}
+
+	pub fn with_memory(mut self, new_memory: Vec<Option<Value>>) -> Self {
+		self.memory = new_memory;
+		self
+	}
+
+    pub fn executed_instructions(&self) -> u32 {
+		self._executed_instructions
+	}
+
+	pub fn increase_executed_instructions(&mut self) {
+		self._executed_instructions += 1;
+	}
 
 	pub fn apply(&mut self, op: Operation) -> Result<(), String> {
 		match op {
@@ -83,5 +101,31 @@ impl InternalState {
 				apply_operation!(self, operators::bump::BumpMinusOp{cell: _cell})
 			}
 		}
+	}
+}
+
+#[cfg(test)]
+mod test {
+	use state::InternalState;
+	use operators::Operator;
+	use operators::inbox::InboxOp;
+	use Value;
+	use Operation;
+
+	#[test]
+	fn executed_counter_at_start() {
+		let mut state = InternalState::new(None, 0);
+
+		assert_eq!(state.executed_instructions(), 0);
+	}
+
+	#[test]
+	fn executed_counter_is_increased() {
+		let mut state = InternalState::new(None, 0)
+			.with_input_tape(vec!(Value::Number{value: 1}));
+
+		state.apply(Operation::Inbox);
+
+		assert_eq!(state.executed_instructions(), 1);
 	}
 }

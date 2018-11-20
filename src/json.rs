@@ -6,7 +6,7 @@ use Operation;
 use Value;
 use Location;
 use state::InternalState;
-
+use std::fs::OpenOptions;
 
 // JSON data format for json-ified source code
 #[derive(Debug, Deserialize, Clone)]
@@ -185,20 +185,17 @@ pub fn read_config(path: String) -> InternalState  {
     }
 
     let input_config: Config = serde_json::from_str(&contents).unwrap();
-    return InternalState{
-        register: None,
-        input_tape: input_config.input_tape.into_iter().map(|input| match input {
+    return InternalState::new(None, 0)
+        .with_input_tape(input_config.input_tape.into_iter().map(|input| match input {
             JsonValue::Number(num_) => Value::Number{value: num_},
             JsonValue::Character(char_) => Value::Character{value: char_}
-        }).collect(),
-        output_tape: vec!(),
-        instruction_counter: 0,
-        memory: input_config.memory.into_iter().map(|memory_value| match memory_value {
+        }).collect())
+        .with_memory(input_config.memory.into_iter().map(|memory_value| match memory_value {
             Some(JsonValue::Number(num_)) => Some(Value::Number{value: num_}),
             Some(JsonValue::Character(char_)) => Some(Value::Character{value: char_}),
             None => None
-        }).collect()
-    };
+        }).collect())
+        .clone();
 }
 
 #[derive(Serialize)]
@@ -208,17 +205,27 @@ struct StateDump {
     error_reason: String
 }
 
-pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: String) {
+pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: &String) {
     let state_dump = StateDump {
         internal_state: internal_state.clone(),
         ended_with_error: !error_reason.is_empty(),
-        error_reason: error_reason
+        error_reason: error_reason.to_string()
     };
 
     let raw_state = serde_json::to_string(&state_dump).unwrap();
 
-    let mut file = File::create(srcpath.to_owned() + "_state_dump.json").unwrap();
-    file.write_all(raw_state.as_bytes());
+    let result = OpenOptions::new()
+        .append(true).create(true).truncate(false)
+        .open(srcpath);
+    if result.is_ok() {
+        let mut file = result.unwrap();
+        file.write(raw_state.as_bytes());
+        // hrm-proxy expects a single line for each execution state --> add line separator
+        file.write(b"\n");
+    }
+    else {
+        panic!("cannot write the file?!?!?! {:?}", result.err());
+    }
 }
 
 #[cfg(test)]
