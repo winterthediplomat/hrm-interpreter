@@ -1,7 +1,7 @@
 [package]
 name = "hrm_interpreter"
-version = "0.1.0"
-authors = ["alfateam123 <alfateam123@nwa.xyz>"]
+version = "0.2.0"
+authors = ["alfateam123 <alfateam123@gmail.com>"]
 
 [dependencies]
 serde = "1.0"
