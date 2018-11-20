@@ -107,14 +107,12 @@ impl InternalState {
 #[cfg(test)]
 mod test {
 	use state::InternalState;
-	use operators::Operator;
-	use operators::inbox::InboxOp;
 	use Value;
 	use Operation;
 
 	#[test]
 	fn executed_counter_at_start() {
-		let mut state = InternalState::new(None, 0);
+		let state = InternalState::new(None, 0);
 
 		assert_eq!(state.executed_instructions(), 0);
 	}
@@ -124,7 +122,7 @@ mod test {
 		let mut state = InternalState::new(None, 0)
 			.with_input_tape(vec!(Value::Number{value: 1}));
 
-		state.apply(Operation::Inbox);
+		let _ = state.apply(Operation::Inbox);
 
 		assert_eq!(state.executed_instructions(), 1);
 	}

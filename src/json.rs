@@ -9,14 +9,14 @@ use state::InternalState;
 use std::fs::OpenOptions;
 
 // JSON data format for json-ified source code
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum JsonOperand {
     Label(String),
     Address(u32),
     Cell(u32)
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct JsonOperation {
     operation: String,
     operand: Option<JsonOperand>
@@ -26,14 +26,14 @@ pub struct JsonOperation {
 // using ::Value directly forces users to write horrible things,
 // such as "input_tape": [{"Number": {"value": 3}}].
 // Users can now write "input_tape: [3] and be happy.
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(untagged)]
 enum JsonValue {
     Number(i32),
     Character(char)
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 struct Config {
     input_tape: Vec<JsonValue>,
     memory: Vec<Option<JsonValue>>
@@ -166,7 +166,11 @@ pub fn read_file(srcpath: String) -> Vec<Operation> {
         panic!("could not read the file!");
     }
 
-    let source_code: Vec<JsonOperation> = serde_json::from_str(&contents).unwrap();
+    read_instructions(contents)
+}
+
+pub fn read_instructions(serialized_code: String) -> Vec<Operation> {
+    let source_code: Vec<JsonOperation> = serde_json::from_str(&serialized_code).unwrap();
     let position_for_label = labels_to_positions(&source_code);
     let mut res: Vec<Operation> = vec!();
     for json_op in source_code {
@@ -184,25 +188,39 @@ pub fn read_config(path: String) -> InternalState  {
         panic!("could not read the file!");
     }
 
-    let input_config: Config = serde_json::from_str(&contents).unwrap();
+    read_config_from_string(contents)
+}
+
+pub fn read_config_from_string(serialized_input: String) -> InternalState {
+    let input_config: Config = serde_json::from_str(&serialized_input).unwrap();
     return InternalState::new(None, 0)
         .with_input_tape(input_config.input_tape.into_iter().map(|input| match input {
-            JsonValue::Number(num_) => Value::Number{value: num_},
-            JsonValue::Character(char_) => Value::Character{value: char_}
+            JsonValue::Number(num_) => Value::Number { value: num_ },
+            JsonValue::Character(char_) => Value::Character { value: char_ }
         }).collect())
         .with_memory(input_config.memory.into_iter().map(|memory_value| match memory_value {
-            Some(JsonValue::Number(num_)) => Some(Value::Number{value: num_}),
-            Some(JsonValue::Character(char_)) => Some(Value::Character{value: char_}),
+            Some(JsonValue::Number(num_)) => Some(Value::Number { value: num_ }),
+            Some(JsonValue::Character(char_)) => Some(Value::Character { value: char_ }),
             None => None
         }).collect())
         .clone();
 }
 
 #[derive(Serialize)]
-struct StateDump {
+pub struct StateDump {
     internal_state: InternalState,
     ended_with_error: bool,
     error_reason: String
+}
+
+pub fn serialize_state(internal_state: &InternalState, error_reason: &String) -> String {
+    let state_dump = StateDump {
+        internal_state: internal_state.clone(),
+        ended_with_error: !error_reason.is_empty(),
+        error_reason: error_reason.to_string(),
+    };
+
+    serde_json::to_string(&state_dump).unwrap()
 }
 
 pub fn dump_state(internal_state: &InternalState, srcpath: &str, error_reason: &String) {

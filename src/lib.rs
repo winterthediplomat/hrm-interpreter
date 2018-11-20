@@ -11,13 +11,13 @@ pub enum Value {
 	Character{value: char}
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub enum Location {
 	Cell(usize),
 	Address(usize)
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Debug, Clone, Copy)]
 pub enum Operation {
 	Inbox,
 	Outbox,
