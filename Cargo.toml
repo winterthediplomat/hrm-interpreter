@@ -2,6 +2,8 @@
 name = "hrm_interpreter"
 version = "0.2.0"
 authors = ["alfateam123 <alfateam123@gmail.com>"]
+description = "a small interpreter for the HRM language, used in Human Resource Machine"
+license = "MIT"
 
 [dependencies]
 serde = "1.0"
